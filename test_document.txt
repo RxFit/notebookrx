@@ -1,0 +1,33 @@
+﻿# NotebookRx Platform — Technical Overview
+
+## What is NotebookRx?
+NotebookRx is a deterministic, RAG-based AI research assistant built for healthcare and clinical note management. It is designed to answer questions strictly from uploaded documents without hallucination.
+
+## Architecture
+The platform consists of three main panes:
+1. **Sources Pane (Left)** — Upload PDFs, TXT, JSON, and Markdown files up to 20MB. Documents are chunked and embedded using the gemini-embedding-001 model, which produces 3072-dimensional vectors stored in PostgreSQL with the pgvector extension.
+2. **Chat Pane (Middle)** — A strict RAG engine powered by Gemini 2.5 Flash. Every answer must cite a specific chunk from the uploaded documents. Off-topic questions receive the response: "I cannot find this in the sources."
+3. **Studio Pane (Right)** — An agentic media studio with two tools: a Podcast Generator that creates 2-host conversations from your sources, and a Diagram Generator that renders Mermaid.js flowcharts.
+
+## Technology Stack
+- Frontend: Next.js 16 with Turbopack, TypeScript, Tailwind CSS, Zustand state management
+- Backend: FastAPI with async SQLAlchemy, pgvector, Redis job queues
+- Database: PostgreSQL 18 on Railway with pgvector v0.8.2 for vector similarity search
+- AI: Google Gemini API (gemini-2.5-flash for chat, gemini-embedding-001 for embeddings)
+- Infrastructure: Railway (PostgreSQL + Redis), deployed via nixpacks
+
+## Security Model
+All documents are scoped to individual users via a user_id field. The system enforces Row-Level Security — users can only query their own documents. A sandbox guard prevents any chat query from running without at least one selected document. The phantom citation guard ensures the model cannot reference chunks it was not given.
+
+## Deployment
+The application is deployed on Railway under the project name "reasonable-light". The backend uses uvicorn with asyncio event loop. The frontend is served by Next.js. Both services auto-deploy from the monorepo via railway.toml configuration.
+
+## Frequently Asked Questions
+Q: What file types are supported?
+A: PDF, TXT, JSON, and MD files up to 20MB per upload.
+
+Q: How does the citation system work?
+A: Each answer from the AI includes JSON-structured citations pointing to specific chunk IDs from your documents. These citations are verified before being returned — any citation not grounded in the provided context is stripped out.
+
+Q: Can I delete documents?
+A: Yes. Clicking the delete button removes the document and all its associated chunks from the database with a CASCADE delete.
