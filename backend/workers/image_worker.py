@@ -22,7 +22,7 @@ def _generate_image_sync(client: genai.Client, refined_prompt: str) -> tuple[byt
         config=types.GenerateImagesConfig(
             number_of_images=1,
             aspect_ratio="16:9",
-            safety_filter_level="BLOCK_MEDIUM_AND_ABOVE",
+            safety_filter_level="BLOCK_LOW_AND_ABOVE",
         ),
     )
     if not resp.generated_images:

@@ -4,24 +4,28 @@ import { useAppStore } from "@/store/useAppStore";
 import { ApiService } from "@/lib/api";
 import { MediaJob } from "@/types";
 import dynamic from "next/dynamic";
+import NotesTab from "./NotesTab";
 
 const Mermaid = dynamic(() => import("react-mermaid2"), { ssr: false });
 
+interface Props { notebookId: string; }
+
 function AudioTab() {
-  const { selectedDocumentIds } = useAppStore();
+  const { selectedDocumentIds, documents } = useAppStore();
   const [job, setJob]         = useState<MediaJob | null>(null);
   const [jobId, setJobId]     = useState<string | null>(null);
   const [polling, setPolling] = useState(false);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
-  const pollRef = useRef<NodeJS.Timeout | null>(null);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const docIds = selectedDocumentIds.size > 0 ? Array.from(selectedDocumentIds) : documents.map((d) => d.id);
 
   const startGeneration = async () => {
-    if (selectedDocumentIds.size === 0) return;
-    // Revoke previous blob URL to free memory
+    if (docIds.length === 0) return;
     if (audioUrl) URL.revokeObjectURL(audioUrl);
     setAudioUrl(null);
     setJob({ status: "queued", progress: 0, url: null, error: null });
-    const res = await ApiService.startAudioJob(Array.from(selectedDocumentIds));
+    const res = await ApiService.startAudioJob(docIds);
     setJobId(res.job_id);
     setPolling(true);
   };
@@ -34,7 +38,6 @@ function AudioTab() {
       if (status.status === "done") {
         setPolling(false);
         if (pollRef.current) clearInterval(pollRef.current);
-        // Fetch MP3 with auth header — browsers cannot add JWT to <audio src> directly
         ApiService.fetchAudioBlob(jobId)
           .then((url) => setAudioUrl(url))
           .catch((e) => setJob((j) => j ? { ...j, error: `Playback load failed: ${e.message}` } : j));
@@ -49,34 +52,24 @@ function AudioTab() {
   return (
     <div className="tab-content">
       <h3 className="tab-section-title">🎙 Podcast Generator</h3>
-      <p className="tab-desc">Generate a 2-host podcast conversation from your selected sources using Gemini TTS.</p>
-      <button id="generate-audio-btn" className="action-btn" onClick={startGeneration} disabled={polling || selectedDocumentIds.size === 0}>
-        {polling ? "Generating…" : "Generate Podcast"}
+      <p className="tab-desc">Generate a 2-host podcast from your sources using Gemini TTS.</p>
+      <button id="generate-audio-btn" className="action-btn" onClick={startGeneration} disabled={polling || docIds.length === 0}>
+        {polling ? "Generating..." : "Generate Podcast"}
       </button>
-
       {job && (
         <div className="job-status">
-          <div className="progress-bar">
-            <div className="progress-fill" style={{ width: `${job.progress}%` }} />
-          </div>
+          <div className="progress-bar"><div className="progress-fill" style={{ width: `${job.progress}%` }} /></div>
           <p className="job-label">{job.status} — {job.progress}%</p>
           {job.error && <p className="job-error">✗ {job.error}</p>}
-
-          {/* Audio player + download — uses blob URL with auth, not raw job.url */}
           {audioUrl && (
             <div className="audio-result">
               <audio controls src={audioUrl} className="audio-player" />
-              <a href={audioUrl} download={`podcast-${jobId}.mp3`} className="btn-ghost">
-                Download MP3
-              </a>
+              <a href={audioUrl} download={`podcast-${jobId}.mp3`} className="btn-ghost">Download MP3</a>
             </div>
           )}
-
-          {/* Show fetching indicator while audio loads after completion */}
           {job.status === "done" && !audioUrl && !job.error && (
-            <p className="job-label" style={{ fontStyle: "italic" }}>Loading audio player…</p>
+            <p className="job-label" style={{ fontStyle: "italic" }}>Loading audio player...</p>
           )}
-
           {job.script && (
             <div className="script-preview">
               {job.script.map((line, i) => (
@@ -93,31 +86,30 @@ function AudioTab() {
 }
 
 function DiagramTab() {
-  const { selectedDocumentIds } = useAppStore();
+  const { selectedDocumentIds, documents } = useAppStore();
   const [prompt, setPrompt]   = useState("");
   const [mermaid, setMermaid] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError]     = useState<string | null>(null);
+  const docIds = selectedDocumentIds.size > 0 ? Array.from(selectedDocumentIds) : documents.map((d) => d.id);
 
   const generate = async () => {
-    if (selectedDocumentIds.size === 0) return;
+    if (docIds.length === 0) return;
     setLoading(true); setError(null);
     try {
-      const res = await ApiService.generateDiagram(Array.from(selectedDocumentIds), prompt);
+      const res = await ApiService.generateDiagram(docIds, prompt);
       setMermaid(res.mermaid);
     } catch (e: unknown) {
       setError((e as { response?: { data?: { detail?: string } } })?.response?.data?.detail || "Generation failed");
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
   };
 
   return (
     <div className="tab-content">
       <h3 className="tab-section-title">📊 Diagram Generator</h3>
-      <input id="diagram-prompt" className="diagram-input" placeholder="Optional: describe the diagram you want…" value={prompt} onChange={(e) => setPrompt(e.target.value)} />
-      <button id="generate-diagram-btn" className="action-btn" onClick={generate} disabled={loading || selectedDocumentIds.size === 0}>
-        {loading ? "Generating…" : "Generate Diagram"}
+      <input id="diagram-prompt" className="diagram-input" placeholder="Optional: describe the diagram you want..." value={prompt} onChange={(e) => setPrompt(e.target.value)} />
+      <button id="generate-diagram-btn" className="action-btn" onClick={generate} disabled={loading || docIds.length === 0}>
+        {loading ? "Generating..." : "Generate Diagram"}
       </button>
       {error && <p className="job-error">✗ {error}</p>}
       {mermaid && (
@@ -134,19 +126,20 @@ function DiagramTab() {
 }
 
 function ImageTab() {
-  const { selectedDocumentIds } = useAppStore();
+  const { selectedDocumentIds, documents } = useAppStore();
   const [prompt, setPrompt]     = useState("");
   const [job, setJob]           = useState<MediaJob | null>(null);
   const [jobId, setJobId]       = useState<string | null>(null);
   const [polling, setPolling]   = useState(false);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
-  const pollRef = useRef<NodeJS.Timeout | null>(null);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const docIds = selectedDocumentIds.size > 0 ? Array.from(selectedDocumentIds) : documents.map((d) => d.id);
 
   const generate = async () => {
-    if (selectedDocumentIds.size === 0) return;
+    if (docIds.length === 0) return;
     if (imageUrl) URL.revokeObjectURL(imageUrl);
     setImageUrl(null);
-    const res = await ApiService.startImageJob(Array.from(selectedDocumentIds), prompt);
+    const res = await ApiService.startImageJob(docIds, prompt);
     setJobId(res.job_id);
     setPolling(true);
     setJob({ status: "queued", progress: 0, url: null, error: null });
@@ -172,32 +165,22 @@ function ImageTab() {
   return (
     <div className="tab-content">
       <h3 className="tab-section-title">🎨 Image Generator</h3>
-      <p className="tab-desc">Generate a visual from your sources using Imagen 4. Describe what you want or leave blank.</p>
-      <input
-        id="image-prompt"
-        className="diagram-input"
-        placeholder="e.g. 'a diagram of the nervous system', 'a futuristic lab'"
-        value={prompt}
-        onChange={(e) => setPrompt(e.target.value)}
-      />
-      <button id="generate-image-btn" className="action-btn" onClick={generate} disabled={polling || selectedDocumentIds.size === 0}>
-        {polling ? "Generating…" : "Generate Image"}
+      <p className="tab-desc">Generate a visual from your sources using Imagen 4.</p>
+      <input id="image-prompt" className="diagram-input" placeholder="e.g. 'a diagram of the nervous system'" value={prompt} onChange={(e) => setPrompt(e.target.value)} />
+      <button id="generate-image-btn" className="action-btn" onClick={generate} disabled={polling || docIds.length === 0}>
+        {polling ? "Generating..." : "Generate Image"}
       </button>
       {job && (
         <div className="job-status">
-          <div className="progress-bar">
-            <div className="progress-fill" style={{ width: `${job.progress}%` }} />
-          </div>
+          <div className="progress-bar"><div className="progress-fill" style={{ width: `${job.progress}%` }} /></div>
           <p className="job-label">{job.status} — {job.progress}%</p>
           {job.error && <p className="job-error">✗ {job.error}</p>}
-          {job.refined_prompt && !imageUrl && (
-            <p className="job-label" style={{ fontStyle: "italic" }}>Prompt: {job.refined_prompt}</p>
-          )}
+          {job.refined_prompt && !imageUrl && <p className="job-label" style={{ fontStyle: "italic" }}>Prompt: {job.refined_prompt}</p>}
         </div>
       )}
       {imageUrl && (
         <div className="image-result">
-          <img src={imageUrl} alt="Imagen 4 generated" className="generated-image" />
+          <img src={imageUrl} alt="Imagen generated" className="generated-image" />
           <a href={imageUrl} download={`image-${jobId}.png`} className="btn-ghost">Download PNG</a>
         </div>
       )}
@@ -205,9 +188,10 @@ function ImageTab() {
   );
 }
 
-export default function RightPane() {
+export default function RightPane({ notebookId }: Props) {
   const { rightTab, setRightTab } = useAppStore();
   const tabs = [
+    { key: "notes"   as const, label: "📝 Notes" },
     { key: "audio"   as const, label: "🎙 Audio" },
     { key: "diagram" as const, label: "📊 Diagram" },
     { key: "image"   as const, label: "🎨 Image" },
@@ -225,6 +209,7 @@ export default function RightPane() {
           </button>
         ))}
       </div>
+      {rightTab === "notes"   && <NotesTab notebookId={notebookId} />}
       {rightTab === "audio"   && <AudioTab />}
       {rightTab === "diagram" && <DiagramTab />}
       {rightTab === "image"   && <ImageTab />}
