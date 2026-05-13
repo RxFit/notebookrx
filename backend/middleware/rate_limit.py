@@ -2,10 +2,10 @@
 Rate-limiting middleware using Redis sliding window algorithm.
 
 Limits:
-  /api/ingest/  -> 10 uploads per user per hour
-  /api/chat/    -> 60 requests per user per minute
-  /api/media/   -> 20 requests per user per hour
-  All other     -> 120 requests per IP per minute (global fallback)
+  /api/ingest/  -> 50 uploads per user per hour   (was 10 — too low for real use)
+  /api/chat/    -> 120 requests per user per minute
+  /api/media/   -> 50 requests per user per hour
+  All other     -> 200 requests per IP per minute (global fallback)
 """
 from fastapi import Request
 from fastapi.responses import JSONResponse
@@ -16,11 +16,11 @@ import time, logging, jwt, os
 logger = logging.getLogger(__name__)
 
 RATE_RULES = [
-    ("/api/ingest/", 10,  3600, "user"),
-    ("/api/chat/",   60,  60,   "user"),
-    ("/api/media/",  20,  3600, "user"),
+    ("/api/ingest/", 50,  3600, "user"),   # 50 uploads/hr per user
+    ("/api/chat/",   120, 60,   "user"),   # 120 chats/min per user
+    ("/api/media/",  50,  3600, "user"),   # 50 media jobs/hr per user
 ]
-GLOBAL_LIMIT, GLOBAL_WINDOW = 120, 60
+GLOBAL_LIMIT, GLOBAL_WINDOW = 200, 60
 
 
 def _extract_user_id(request: Request) -> str | None:
@@ -90,7 +90,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
                 break
 
         if key_source == "user":
-            # Use JWT user_id — each user has their own independent bucket
+            # Key on JWT user_id — each user has their own independent bucket
             user_id = _extract_user_id(request)
             identity = user_id if user_id else (request.client.host if request.client else "anonymous")
             segment = path.strip("/").split("/")[1] if "/" in path.strip("/") else "api"
