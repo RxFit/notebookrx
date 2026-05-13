@@ -107,3 +107,21 @@ async def stream_job_status(job_id: str, current_user: User = Depends(get_curren
         event_generator(), media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
+
+@router.get("/audio/{job_id}.mp3")
+async def serve_audio(job_id: str, current_user: User = Depends(get_current_user)):
+    """Stream the generated MP3 from Redis (base64-encoded)."""
+    import base64
+    from fastapi.responses import Response
+    job = await job_store.get(job_id)
+    if not job or job.get("status") != "done":
+        raise HTTPException(404, "Audio not ready or job not found")
+    audio_b64 = job.get("audio_b64")
+    if not audio_b64:
+        raise HTTPException(404, "Audio data not available")
+    audio_bytes = base64.b64decode(audio_b64)
+    return Response(
+        content=audio_bytes,
+        media_type="audio/mpeg",
+        headers={"Content-Disposition": f'attachment; filename="podcast-{job_id}.mp3"'},
+    )

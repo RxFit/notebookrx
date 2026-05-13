@@ -1,0 +1,9 @@
+﻿{
+  "buildCommand": "npm run build",
+  "outputDirectory": ".next",
+  "framework": "nextjs",
+  "installCommand": "npm ci",
+  "env": {
+    "NEXT_PUBLIC_API_URL": "https://notebookrx-api-production.up.railway.app"
+  }
+}

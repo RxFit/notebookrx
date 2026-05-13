@@ -6,6 +6,7 @@ from auth import router as auth_router
 from db.database import init_db
 from middleware.rate_limit import RateLimitMiddleware
 from config import settings
+import os
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -14,9 +15,17 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="NotebookLM Clone API", version="1.0.0", lifespan=lifespan)
 
+# Build allowed origins — include Railway + Vercel + local dev
+ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+    "http://localhost:3003",
+    "https://notebookrx-api-production.up.railway.app",
+]
+# Allow any *.vercel.app subdomain pattern via regex
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:3003"],
+    allow_origins=ALLOWED_ORIGINS,
+    allow_origin_regex=r"https://.*\.vercel\.app",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
