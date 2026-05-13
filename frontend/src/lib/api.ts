@@ -9,12 +9,10 @@ const TOKEN_KEY = "notebookrx_token";
 export const authStorage = {
   getToken: (): string | null => {
     if (typeof window === "undefined") return null;
-    // Try localStorage first, then sessionStorage as fallback
     return localStorage.getItem(TOKEN_KEY) || sessionStorage.getItem(TOKEN_KEY);
   },
   setToken: (token: string) => {
     if (typeof window === "undefined") return;
-    // Write to both — sessionStorage survives even if localStorage is cleared by browser
     try { localStorage.setItem(TOKEN_KEY, token); } catch { /* quota exceeded */ }
     sessionStorage.setItem(TOKEN_KEY, token);
   },
@@ -22,16 +20,6 @@ export const authStorage = {
     if (typeof window === "undefined") return;
     localStorage.removeItem(TOKEN_KEY);
     sessionStorage.removeItem(TOKEN_KEY);
-  },
-  // Diagnostic: check if localStorage is actually persisting
-  isLocalStoragePersistent: (): boolean => {
-    try {
-      const TEST = "__ls_test__";
-      localStorage.setItem(TEST, "1");
-      const val = localStorage.getItem(TEST);
-      localStorage.removeItem(TEST);
-      return val === "1";
-    } catch { return false; }
   },
 };
 
@@ -101,11 +89,23 @@ export const ApiService = {
     const { data } = await api.get(`/api/media/jobs/${jobId}`);
     return data;
   },
+  // Fetches MP3 with Authorization header — browsers can't add JWT to <audio src> directly
+  async fetchAudioBlob(jobId: string): Promise<string> {
+    const token = authStorage.getToken();
+    const res = await fetch(`${BASE_URL}/api/media/audio/${jobId}.mp3`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (!res.ok) throw new Error(`Audio fetch failed: ${res.status}`);
+    const blob = await res.blob();
+    return URL.createObjectURL(blob);
+  },
+  // Fetches PNG with Authorization header
   async fetchImageBlob(jobId: string): Promise<string> {
     const token = authStorage.getToken();
     const res = await fetch(`${BASE_URL}/api/media/image/${jobId}.png`, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     });
+    if (!res.ok) throw new Error(`Image fetch failed: ${res.status}`);
     const blob = await res.blob();
     return URL.createObjectURL(blob);
   },
