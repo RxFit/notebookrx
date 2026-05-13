@@ -1,5 +1,5 @@
 ﻿from fastapi import APIRouter, HTTPException, BackgroundTasks, Depends
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, text
 from pydantic import BaseModel
@@ -9,8 +9,9 @@ from config import settings
 from auth.jwt_handler import get_current_user
 import google.genai as genai
 from google.genai import types
-import asyncio, json, uuid, re
+import asyncio, base64, json, uuid, re
 from workers.audio_worker import generate_audio_job
+from workers.image_worker import generate_image_job
 from workers.job_store import job_store
 
 router = APIRouter()
@@ -41,6 +42,7 @@ async def fetch_context(doc_ids: list[str], user_id: str, db: AsyncSession, limi
         raise HTTPException(404, "No content found for the selected documents.")
     return "\n\n".join(c[0] for c in chunks)
 
+# ── Diagram ────────────────────────────────────────────────────────────────
 @router.post("/diagram")
 async def generate_diagram(
     req: MediaRequest,
@@ -54,7 +56,7 @@ async def generate_diagram(
         model=settings.CHAT_MODEL,
         contents=(
             "Based ONLY on this content, generate a valid Mermaid.js diagram "
-            "(flowchart LR or sequence). Return ONLY raw Mermaid syntax — no fences.\n\n"
+            "(flowchart LR or sequence). Return ONLY raw Mermaid syntax - no fences.\n\n"
             f"Content:\n{context}\n\nUser request: {req.prompt or 'summarise key concepts'}"
         ),
         config=types.GenerateContentConfig(temperature=0.2),
@@ -63,6 +65,7 @@ async def generate_diagram(
     raw = re.sub(r"```", "", raw).strip()
     return {"mermaid": raw}
 
+# ── Audio ──────────────────────────────────────────────────────────────────
 @router.post("/audio")
 async def generate_audio(
     req: MediaRequest,
@@ -78,6 +81,51 @@ async def generate_audio(
     background_tasks.add_task(generate_audio_job, job_id, context, settings)
     return {"job_id": job_id, "status": "queued"}
 
+@router.get("/audio/{job_id}.mp3")
+async def serve_audio(job_id: str, current_user: User = Depends(get_current_user)):
+    job = await job_store.get(job_id)
+    if not job or job.get("status") != "done":
+        raise HTTPException(404, "Audio not ready or job not found")
+    audio_b64 = job.get("audio_b64")
+    if not audio_b64:
+        raise HTTPException(404, "Audio data not available")
+    return Response(
+        content=base64.b64decode(audio_b64),
+        media_type="audio/mpeg",
+        headers={"Content-Disposition": f'attachment; filename="podcast-{job_id}.mp3"'},
+    )
+
+# ── Image (Imagen 3) ───────────────────────────────────────────────────────
+@router.post("/image")
+async def generate_image(
+    req: MediaRequest,
+    background_tasks: BackgroundTasks,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    if not req.selected_document_ids:
+        raise HTTPException(400, "No documents selected")
+    context = await fetch_context(req.selected_document_ids, current_user.id, db, limit=20)
+    job_id = str(uuid.uuid4())
+    await job_store.create(job_id, {"status": "queued", "progress": 0, "url": None, "error": None})
+    background_tasks.add_task(generate_image_job, job_id, context, req.prompt or "visualize key concepts", settings)
+    return {"job_id": job_id, "status": "queued"}
+
+@router.get("/image/{job_id}.png")
+async def serve_image(job_id: str, current_user: User = Depends(get_current_user)):
+    job = await job_store.get(job_id)
+    if not job or job.get("status") != "done":
+        raise HTTPException(404, "Image not ready or job not found")
+    image_b64 = job.get("image_b64")
+    if not image_b64:
+        raise HTTPException(404, "Image data not available")
+    return Response(
+        content=base64.b64decode(image_b64),
+        media_type=job.get("mime_type", "image/png"),
+        headers={"Content-Disposition": f'inline; filename="image-{job_id}.png"'},
+    )
+
+# ── Job polling + SSE ──────────────────────────────────────────────────────
 @router.get("/jobs/{job_id}")
 async def get_job_status(job_id: str, current_user: User = Depends(get_current_user)):
     job = await job_store.get(job_id)
@@ -106,22 +154,4 @@ async def stream_job_status(job_id: str, current_user: User = Depends(get_curren
     return StreamingResponse(
         event_generator(), media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
-    )
-
-@router.get("/audio/{job_id}.mp3")
-async def serve_audio(job_id: str, current_user: User = Depends(get_current_user)):
-    """Stream the generated MP3 from Redis (base64-encoded)."""
-    import base64
-    from fastapi.responses import Response
-    job = await job_store.get(job_id)
-    if not job or job.get("status") != "done":
-        raise HTTPException(404, "Audio not ready or job not found")
-    audio_b64 = job.get("audio_b64")
-    if not audio_b64:
-        raise HTTPException(404, "Audio data not available")
-    audio_bytes = base64.b64decode(audio_b64)
-    return Response(
-        content=audio_bytes,
-        media_type="audio/mpeg",
-        headers={"Content-Disposition": f'attachment; filename="podcast-{job_id}.mp3"'},
     )

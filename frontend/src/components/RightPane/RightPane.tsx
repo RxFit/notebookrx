@@ -38,7 +38,7 @@ function AudioTab() {
   return (
     <div className="tab-content">
       <h3 className="tab-section-title">🎙 Podcast Generator</h3>
-      <p className="tab-desc">Generate a 2-host podcast conversation from your selected sources.</p>
+      <p className="tab-desc">Generate a 2-host podcast conversation from your selected sources using Gemini TTS.</p>
       <button id="generate-audio-btn" className="action-btn" onClick={startGeneration} disabled={polling || selectedDocumentIds.size === 0}>
         {polling ? "Generating…" : "Generate Podcast"}
       </button>
@@ -83,8 +83,8 @@ function DiagramTab() {
     try {
       const res = await ApiService.generateDiagram(Array.from(selectedDocumentIds), prompt);
       setMermaid(res.mermaid);
-    } catch (e: any) {
-      setError(e.response?.data?.detail || "Generation failed");
+    } catch (e: unknown) {
+      setError((e as { response?: { data?: { detail?: string } } })?.response?.data?.detail || "Generation failed");
     } finally {
       setLoading(false);
     }
@@ -111,11 +111,84 @@ function DiagramTab() {
   );
 }
 
+function ImageTab() {
+  const { selectedDocumentIds } = useAppStore();
+  const [prompt, setPrompt] = useState("");
+  const [job, setJob] = useState<MediaJob | null>(null);
+  const [jobId, setJobId] = useState<string | null>(null);
+  const [polling, setPolling] = useState(false);
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const pollRef = useRef<NodeJS.Timeout | null>(null);
+
+  const generate = async () => {
+    if (selectedDocumentIds.size === 0) return;
+    setImageUrl(null);
+    const res = await ApiService.startImageJob(Array.from(selectedDocumentIds), prompt);
+    setJobId(res.job_id);
+    setPolling(true);
+    setJob({ status: "queued", progress: 0, url: null, error: null });
+  };
+
+  useEffect(() => {
+    if (!polling || !jobId) return;
+    pollRef.current = setInterval(async () => {
+      const status = await ApiService.getJobStatus(jobId);
+      setJob(status);
+      if (status.status === "done") {
+        setPolling(false);
+        if (pollRef.current) clearInterval(pollRef.current);
+        // Fetch the image as a blob URL so auth header is sent
+        ApiService.fetchImageBlob(jobId).then((url) => setImageUrl(url));
+      } else if (status.status === "error") {
+        setPolling(false);
+        if (pollRef.current) clearInterval(pollRef.current);
+      }
+    }, 1500);
+    return () => { if (pollRef.current) clearInterval(pollRef.current); };
+  }, [polling, jobId]);
+
+  return (
+    <div className="tab-content">
+      <h3 className="tab-section-title">🎨 Image Generator</h3>
+      <p className="tab-desc">Generate a visual from your sources using Imagen 3. Describe what you want or leave blank.</p>
+      <input
+        id="image-prompt"
+        className="diagram-input"
+        placeholder="e.g. 'a diagram of the nervous system', 'a futuristic lab'"
+        value={prompt}
+        onChange={(e) => setPrompt(e.target.value)}
+      />
+      <button id="generate-image-btn" className="action-btn" onClick={generate} disabled={polling || selectedDocumentIds.size === 0}>
+        {polling ? "Generating…" : "Generate Image"}
+      </button>
+      {job && (
+        <div className="job-status">
+          <div className="progress-bar">
+            <div className="progress-fill" style={{ width: `${job.progress}%` }} />
+          </div>
+          <p className="job-label">{job.status} — {job.progress}%</p>
+          {job.error && <p className="job-error">✗ {job.error}</p>}
+          {job.refined_prompt && !imageUrl && (
+            <p className="job-label" style={{ fontStyle: "italic" }}>Prompt: {job.refined_prompt}</p>
+          )}
+        </div>
+      )}
+      {imageUrl && (
+        <div className="image-result">
+          <img src={imageUrl} alt="Imagen 3 generated" className="generated-image" />
+          <a href={imageUrl} download={`image-${jobId}.png`} className="btn-ghost">Download PNG</a>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function RightPane() {
   const { rightTab, setRightTab } = useAppStore();
-  const tabs: Array<{ key: typeof rightTab; label: string }> = [
-    { key: "audio", label: "🎙 Audio" },
-    { key: "diagram", label: "📊 Diagram" },
+  const tabs = [
+    { key: "audio" as const, label: "🎙 Audio" },
+    { key: "diagram" as const, label: "📊 Diagram" },
+    { key: "image" as const, label: "🎨 Image" },
   ];
 
   return (
@@ -132,6 +205,7 @@ export default function RightPane() {
       </div>
       {rightTab === "audio" && <AudioTab />}
       {rightTab === "diagram" && <DiagramTab />}
+      {rightTab === "image" && <ImageTab />}
     </aside>
   );
 }

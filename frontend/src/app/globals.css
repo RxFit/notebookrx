@@ -660,3 +660,16 @@ textarea, input { font-family: inherit; }
   border-color: var(--danger);
   color: var(--danger);
 }
+
+/* ── Image Result ─────────────────────────────────────────── */
+.image-result {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.generated-image {
+  width: 100%;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-md);
+}
