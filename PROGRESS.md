@@ -167,3 +167,25 @@ Next Steps:
 - [x] Frontend deployed to https://frontend-ten-gamma-72.vercel.app
 - [x] CORS wildcard for *.vercel.app on backend
 - [x] 4/4 full-stack E2E smoke tests passing
+
+## Phase 6 — Complete (2026-05-13)
+
+### Imagen 3 Image Agent
+- [x] image_worker.py — Gemini Flash prompt refiner + Imagen 3.0 generation
+- [x] POST /api/media/image + GET /api/media/image/{job_id}.png endpoints
+- [x] RightPane.tsx Image tab wired — prompt input, progress bar, image display + download
+- [x] api.ts: startImageJob() + fetchImageBlob() (auth-header fetch for binary)
+
+### Security Hardening
+- [x] Gemini Safety Settings on all chat responses (BLOCK_MEDIUM_AND_ABOVE for 4 harm categories)
+- [x] Prompt injection shield in chat.py (=== SYSTEM / IGNORE PREVIOUS / DISREGARD patterns blocked)
+- [x] Image generation safety filter set to BLOCK_MEDIUM_AND_ABOVE
+
+### GitHub CI/CD
+- [x] GitHub repo live: https://github.com/RxFit/notebookrx
+- [x] All code pushed to master branch
+- [x] Railway + Vercel redeployed from final codebase
+
+### Verified Routes
+- Backend: /api/media/image + /api/media/image/{job_id}.png confirmed in OpenAPI schema
+- Frontend: Image tab TypeScript build clean (0 errors)
