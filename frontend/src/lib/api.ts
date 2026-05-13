@@ -1,4 +1,4 @@
-﻿import axios from "axios";
+import axios from "axios";
 import { ChatResponse, IngestResponse, Document, MediaJob, TokenResponse, AuthUser, Notebook, Note } from "@/types";
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
@@ -115,8 +115,12 @@ export const ApiService = {
   async deleteDocument(id: string): Promise<void> {
     await api.delete(`/api/ingest/${id}`);
   },
-  async chat(query: string, selectedDocumentIds: string[]): Promise<ChatResponse> {
-    const { data } = await api.post("/api/chat/", { query, selected_document_ids: selectedDocumentIds });
+  async chat(query: string, selectedDocumentIds: string[], creativity?: number): Promise<ChatResponse> {
+    const { data } = await api.post("/api/chat/", {
+      query,
+      selected_document_ids: selectedDocumentIds,
+      ...(creativity !== undefined ? { temperature: creativity } : {}),
+    });
     return data;
   },
   async generateDiagram(selectedDocumentIds: string[], prompt: string): Promise<{ mermaid: string }> {
