@@ -36,3 +36,17 @@ export interface MediaJob {
   error: string | null;
   script?: Array<{ speaker: string; dialogue: string }>;
 }
+
+export interface AuthUser {
+  user_id: string;
+  email: string;
+  display_name: string;
+}
+
+export interface TokenResponse {
+  access_token: string;
+  token_type: string;
+  user_id: string;
+  email: string;
+  display_name: string;
+}
