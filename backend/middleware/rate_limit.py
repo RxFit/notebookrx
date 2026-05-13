@@ -11,8 +11,7 @@ from fastapi import Request
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 import redis.asyncio as aioredis
-import time
-import logging
+import time, logging, jwt, os
 
 logger = logging.getLogger(__name__)
 
@@ -22,6 +21,20 @@ RATE_RULES = [
     ("/api/media/",  20,  3600, "user"),
 ]
 GLOBAL_LIMIT, GLOBAL_WINDOW = 120, 60
+
+
+def _extract_user_id(request: Request) -> str | None:
+    """Parse JWT from Authorization header and return user_id, or None."""
+    auth = request.headers.get("Authorization", "")
+    if not auth.startswith("Bearer "):
+        return None
+    token = auth[7:]
+    try:
+        secret = os.environ.get("SECRET_KEY", "")
+        payload = jwt.decode(token, secret, algorithms=["HS256"])
+        return payload.get("user_id") or payload.get("sub")
+    except Exception:
+        return None
 
 
 class RateLimitMiddleware(BaseHTTPMiddleware):
@@ -77,7 +90,9 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
                 break
 
         if key_source == "user":
-            identity = request.headers.get("x-user-id", "anonymous")
+            # Use JWT user_id — each user has their own independent bucket
+            user_id = _extract_user_id(request)
+            identity = user_id if user_id else (request.client.host if request.client else "anonymous")
             segment = path.strip("/").split("/")[1] if "/" in path.strip("/") else "api"
             key = f"rl:{segment}:{identity}"
         else:
@@ -110,4 +125,3 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         response.headers["X-RateLimit-Remaining"] = str(remaining)
         response.headers["X-RateLimit-Window"] = str(window)
         return response
-
