@@ -4,11 +4,35 @@ import { ChatResponse, IngestResponse, Document, MediaJob, TokenResponse, AuthUs
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 const api = axios.create({ baseURL: BASE_URL });
 
+const TOKEN_KEY = "notebookrx_token";
+
 export const authStorage = {
-  getToken: (): string | null =>
-    typeof window !== "undefined" ? localStorage.getItem("notebookrx_token") : null,
-  setToken: (token: string) => localStorage.setItem("notebookrx_token", token),
-  clear: () => localStorage.removeItem("notebookrx_token"),
+  getToken: (): string | null => {
+    if (typeof window === "undefined") return null;
+    // Try localStorage first, then sessionStorage as fallback
+    return localStorage.getItem(TOKEN_KEY) || sessionStorage.getItem(TOKEN_KEY);
+  },
+  setToken: (token: string) => {
+    if (typeof window === "undefined") return;
+    // Write to both — sessionStorage survives even if localStorage is cleared by browser
+    try { localStorage.setItem(TOKEN_KEY, token); } catch { /* quota exceeded */ }
+    sessionStorage.setItem(TOKEN_KEY, token);
+  },
+  clear: () => {
+    if (typeof window === "undefined") return;
+    localStorage.removeItem(TOKEN_KEY);
+    sessionStorage.removeItem(TOKEN_KEY);
+  },
+  // Diagnostic: check if localStorage is actually persisting
+  isLocalStoragePersistent: (): boolean => {
+    try {
+      const TEST = "__ls_test__";
+      localStorage.setItem(TEST, "1");
+      const val = localStorage.getItem(TEST);
+      localStorage.removeItem(TEST);
+      return val === "1";
+    } catch { return false; }
+  },
 };
 
 api.interceptors.request.use((config) => {
@@ -77,7 +101,6 @@ export const ApiService = {
     const { data } = await api.get(`/api/media/jobs/${jobId}`);
     return data;
   },
-  // Fetch image bytes with auth header, return blob URL for <img> src
   async fetchImageBlob(jobId: string): Promise<string> {
     const token = authStorage.getToken();
     const res = await fetch(`${BASE_URL}/api/media/image/${jobId}.png`, {
