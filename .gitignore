@@ -16,3 +16,4 @@ out/
 # Misc
 *.mp3
 *.mp4
+.vercel
