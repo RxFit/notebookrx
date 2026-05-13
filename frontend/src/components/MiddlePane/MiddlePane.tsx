@@ -41,9 +41,20 @@ function MessageBubble({ msg }: { msg: ChatMessage }) {
   );
 }
 
+// Label shown next to the slider value
+function creativityLabel(val: number): string {
+  if (val <= 0.1) return "Precise";
+  if (val <= 0.3) return "Focused";
+  if (val <= 0.5) return "Balanced";
+  if (val <= 0.7) return "Expressive";
+  if (val <= 0.9) return "Creative";
+  return "Imaginative";
+}
+
 export default function MiddlePane({ notebookId }: Props) {
   const { messages, isLoading, selectedDocumentIds, documents, addMessage, setLoading, clearChat } = useAppStore();
   const [input, setInput] = useState("");
+  const [creativity, setCreativity] = useState(0.0);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
@@ -51,7 +62,7 @@ export default function MiddlePane({ notebookId }: Props) {
   const sendMessage = async () => {
     const query = input.trim();
     if (!query || isLoading) return;
-    // Use all notebook docs implicitly; fall back to selected if any
+
     const docIds = selectedDocumentIds.size > 0
       ? Array.from(selectedDocumentIds)
       : documents.map((d) => d.id);
@@ -62,7 +73,7 @@ export default function MiddlePane({ notebookId }: Props) {
     setLoading(true);
 
     try {
-      const res = await ApiService.chat(query, docIds);
+      const res = await ApiService.chat(query, docIds, creativity);
       addMessage({ id: uuidv4(), role: "assistant", content: res.answer, citations: res.citations, timestamp: new Date() });
     } catch (err: unknown) {
       const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
@@ -77,6 +88,11 @@ export default function MiddlePane({ notebookId }: Props) {
   };
 
   const noSources = documents.length === 0;
+  const noSelected = selectedDocumentIds.size === 0 && documents.length > 0;
+
+  // Interpolated hue: 220 (blue) at 0 → 280 (purple) at 0.5 → 30 (orange) at 1
+  const sliderHue = Math.round(220 + creativity * 100);
+  const sliderColor = `hsl(${sliderHue}, 80%, 55%)`;
 
   return (
     <main className="middle-pane">
@@ -107,6 +123,35 @@ export default function MiddlePane({ notebookId }: Props) {
         {noSources && (
           <div className="sandbox-warning">⚠ Add at least one source to enable chat</div>
         )}
+        {noSelected && (
+          <div className="sandbox-warning">⚠ No sources selected — select sources on the left</div>
+        )}
+
+        {/* ── Creativity slider ── */}
+        <div className="creativity-bar">
+          <div className="creativity-labels">
+            <span className="creativity-label-left">Precise</span>
+            <span className="creativity-label-center" style={{ color: sliderColor }}>
+              Creativity&nbsp;
+              <strong>{creativity.toFixed(1)}</strong>
+              &nbsp;&mdash;&nbsp;{creativityLabel(creativity)}
+            </span>
+            <span className="creativity-label-right">Imaginative</span>
+          </div>
+          <input
+            id="creativity-slider"
+            type="range"
+            min={0}
+            max={1}
+            step={0.1}
+            value={creativity}
+            onChange={(e) => setCreativity(parseFloat(e.target.value))}
+            className="creativity-slider"
+            style={{ "--slider-color": sliderColor } as React.CSSProperties}
+            title={`Creativity: ${creativity.toFixed(1)}`}
+          />
+        </div>
+
         <div className="chat-input-row">
           <textarea
             id="chat-input"

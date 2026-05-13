@@ -46,7 +46,6 @@ export default function NotebookWorkspace({ params }: { params: Promise<{ id: st
 
   if (!user) return <LoginPage />;
 
-  // Collapsed panes shrink to a 40px tab strip — always visible so user can re-expand
   const gridCols = [
     leftCollapsed ? "40px" : "280px",
     "1fr",
@@ -96,7 +95,6 @@ export default function NotebookWorkspace({ params }: { params: Promise<{ id: st
 
       <div className="three-pane-layout" style={{ gridTemplateColumns: gridCols }}>
 
-        {/* LEFT PANE WRAPPER */}
         <div className={`pane-wrapper ${leftCollapsed ? "pane-wrapper-collapsed" : ""}`}>
           {!leftCollapsed && <LeftPane notebookId={notebookId} />}
           <button
@@ -116,7 +114,6 @@ export default function NotebookWorkspace({ params }: { params: Promise<{ id: st
 
         <MiddlePane notebookId={notebookId} />
 
-        {/* RIGHT PANE WRAPPER */}
         <div className={`pane-wrapper ${rightCollapsed ? "pane-wrapper-collapsed" : ""}`}>
           {!rightCollapsed && <RightPane notebookId={notebookId} />}
           <button
