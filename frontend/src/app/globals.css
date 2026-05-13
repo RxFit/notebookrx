@@ -1217,3 +1217,85 @@ textarea, input { font-family: inherit; }
 .right-collapse { left: -11px; }
 
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+/* ─────────────────────────────────────────────────────────────
+   PANE COLLAPSE — UPDATED: 40px tab strip stays visible
+   ───────────────────────────────────────────────────────────── */
+.pane-wrapper {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--border);
+}
+.pane-wrapper:last-child {
+  border-right: none;
+  border-left: 1px solid var(--border);
+}
+
+/* When collapsed, the wrapper IS the 40px strip — center the tab button */
+.pane-wrapper-collapsed {
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-surface);
+  cursor: pointer;
+}
+
+/* Normal edge chevron (expanded state) */
+.pane-collapse-btn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  width: 24px; height: 24px;
+  font-size: 11px;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  z-index: 10;
+  transition: all 0.15s;
+  opacity: 0;
+}
+.pane-wrapper:hover .pane-collapse-btn { opacity: 1; }
+.pane-collapse-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--bg-hover); }
+.left-collapse  { right: -12px; }
+.right-collapse { left: -12px; }
+
+/* Collapsed tab-strip button — fills the whole 40px strip */
+.pane-tab-btn {
+  position: static !important;
+  transform: none !important;
+  opacity: 1 !important;
+  width: 100% !important;
+  height: 100% !important;
+  border-radius: 0 !important;
+  border: none !important;
+  background: transparent !important;
+  writing-mode: vertical-rl;
+  flex-direction: column;
+  gap: 10px;
+  padding: 20px 0;
+  color: var(--text-muted);
+  transition: background 0.15s, color 0.15s;
+}
+.pane-tab-btn:hover {
+  background: var(--bg-hover) !important;
+  color: var(--accent) !important;
+}
+.pane-tab-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  writing-mode: vertical-rl;
+  user-select: none;
+}
+.pane-tab-chevron { font-size: 12px; }
+.pane-tab-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}

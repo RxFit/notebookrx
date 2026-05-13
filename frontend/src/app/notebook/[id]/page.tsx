@@ -46,10 +46,11 @@ export default function NotebookWorkspace({ params }: { params: Promise<{ id: st
 
   if (!user) return <LoginPage />;
 
+  // Collapsed panes shrink to a 40px tab strip — always visible so user can re-expand
   const gridCols = [
-    leftCollapsed ? "0px" : "280px",
+    leftCollapsed ? "40px" : "280px",
     "1fr",
-    rightCollapsed ? "0px" : "340px",
+    rightCollapsed ? "40px" : "340px",
   ].join(" ");
 
   return (
@@ -94,29 +95,45 @@ export default function NotebookWorkspace({ params }: { params: Promise<{ id: st
       </header>
 
       <div className="three-pane-layout" style={{ gridTemplateColumns: gridCols }}>
-        <div className="pane-wrapper">
+
+        {/* LEFT PANE WRAPPER */}
+        <div className={`pane-wrapper ${leftCollapsed ? "pane-wrapper-collapsed" : ""}`}>
           {!leftCollapsed && <LeftPane notebookId={notebookId} />}
           <button
-            className={`pane-collapse-btn left-collapse ${leftCollapsed ? "collapsed" : ""}`}
+            id="toggle-left-pane"
+            className={`pane-collapse-btn left-collapse ${leftCollapsed ? "pane-tab-btn" : ""}`}
             onClick={toggleLeftPane}
             title={leftCollapsed ? "Expand sources" : "Collapse sources"}
           >
-            {leftCollapsed ? ">" : "<"}
+            {leftCollapsed ? (
+              <span className="pane-tab-inner">
+                <span className="pane-tab-chevron">&#x276F;</span>
+                <span className="pane-tab-label">Sources</span>
+              </span>
+            ) : "&#x276E;"}
           </button>
         </div>
 
         <MiddlePane notebookId={notebookId} />
 
-        <div className="pane-wrapper">
+        {/* RIGHT PANE WRAPPER */}
+        <div className={`pane-wrapper ${rightCollapsed ? "pane-wrapper-collapsed" : ""}`}>
           {!rightCollapsed && <RightPane notebookId={notebookId} />}
           <button
-            className={`pane-collapse-btn right-collapse ${rightCollapsed ? "collapsed" : ""}`}
+            id="toggle-right-pane"
+            className={`pane-collapse-btn right-collapse ${rightCollapsed ? "pane-tab-btn" : ""}`}
             onClick={toggleRightPane}
             title={rightCollapsed ? "Expand studio" : "Collapse studio"}
           >
-            {rightCollapsed ? "<" : ">"}
+            {rightCollapsed ? (
+              <span className="pane-tab-inner">
+                <span className="pane-tab-chevron">&#x276E;</span>
+                <span className="pane-tab-label">Studio</span>
+              </span>
+            ) : "&#x276F;"}
           </button>
         </div>
+
       </div>
     </div>
   );
