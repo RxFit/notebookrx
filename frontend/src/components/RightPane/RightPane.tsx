@@ -9,17 +9,21 @@ const Mermaid = dynamic(() => import("react-mermaid2"), { ssr: false });
 
 function AudioTab() {
   const { selectedDocumentIds } = useAppStore();
-  const [job, setJob] = useState<MediaJob | null>(null);
-  const [jobId, setJobId] = useState<string | null>(null);
+  const [job, setJob]         = useState<MediaJob | null>(null);
+  const [jobId, setJobId]     = useState<string | null>(null);
   const [polling, setPolling] = useState(false);
+  const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const pollRef = useRef<NodeJS.Timeout | null>(null);
 
   const startGeneration = async () => {
     if (selectedDocumentIds.size === 0) return;
+    // Revoke previous blob URL to free memory
+    if (audioUrl) URL.revokeObjectURL(audioUrl);
+    setAudioUrl(null);
+    setJob({ status: "queued", progress: 0, url: null, error: null });
     const res = await ApiService.startAudioJob(Array.from(selectedDocumentIds));
     setJobId(res.job_id);
     setPolling(true);
-    setJob({ status: "queued", progress: 0, url: null, error: null });
   };
 
   useEffect(() => {
@@ -27,7 +31,14 @@ function AudioTab() {
     pollRef.current = setInterval(async () => {
       const status = await ApiService.getJobStatus(jobId);
       setJob(status);
-      if (status.status === "done" || status.status === "error") {
+      if (status.status === "done") {
+        setPolling(false);
+        if (pollRef.current) clearInterval(pollRef.current);
+        // Fetch MP3 with auth header — browsers cannot add JWT to <audio src> directly
+        ApiService.fetchAudioBlob(jobId)
+          .then((url) => setAudioUrl(url))
+          .catch((e) => setJob((j) => j ? { ...j, error: `Playback load failed: ${e.message}` } : j));
+      } else if (status.status === "error") {
         setPolling(false);
         if (pollRef.current) clearInterval(pollRef.current);
       }
@@ -42,6 +53,7 @@ function AudioTab() {
       <button id="generate-audio-btn" className="action-btn" onClick={startGeneration} disabled={polling || selectedDocumentIds.size === 0}>
         {polling ? "Generating…" : "Generate Podcast"}
       </button>
+
       {job && (
         <div className="job-status">
           <div className="progress-bar">
@@ -49,12 +61,22 @@ function AudioTab() {
           </div>
           <p className="job-label">{job.status} — {job.progress}%</p>
           {job.error && <p className="job-error">✗ {job.error}</p>}
-          {job.url && (
+
+          {/* Audio player + download — uses blob URL with auth, not raw job.url */}
+          {audioUrl && (
             <div className="audio-result">
-              <audio controls src={job.url} className="audio-player" />
-              <a href={job.url} download className="btn-ghost">Download MP3</a>
+              <audio controls src={audioUrl} className="audio-player" />
+              <a href={audioUrl} download={`podcast-${jobId}.mp3`} className="btn-ghost">
+                Download MP3
+              </a>
             </div>
           )}
+
+          {/* Show fetching indicator while audio loads after completion */}
+          {job.status === "done" && !audioUrl && !job.error && (
+            <p className="job-label" style={{ fontStyle: "italic" }}>Loading audio player…</p>
+          )}
+
           {job.script && (
             <div className="script-preview">
               {job.script.map((line, i) => (
@@ -72,10 +94,10 @@ function AudioTab() {
 
 function DiagramTab() {
   const { selectedDocumentIds } = useAppStore();
-  const [prompt, setPrompt] = useState("");
+  const [prompt, setPrompt]   = useState("");
   const [mermaid, setMermaid] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError]     = useState<string | null>(null);
 
   const generate = async () => {
     if (selectedDocumentIds.size === 0) return;
@@ -113,15 +135,16 @@ function DiagramTab() {
 
 function ImageTab() {
   const { selectedDocumentIds } = useAppStore();
-  const [prompt, setPrompt] = useState("");
-  const [job, setJob] = useState<MediaJob | null>(null);
-  const [jobId, setJobId] = useState<string | null>(null);
-  const [polling, setPolling] = useState(false);
+  const [prompt, setPrompt]     = useState("");
+  const [job, setJob]           = useState<MediaJob | null>(null);
+  const [jobId, setJobId]       = useState<string | null>(null);
+  const [polling, setPolling]   = useState(false);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const pollRef = useRef<NodeJS.Timeout | null>(null);
 
   const generate = async () => {
     if (selectedDocumentIds.size === 0) return;
+    if (imageUrl) URL.revokeObjectURL(imageUrl);
     setImageUrl(null);
     const res = await ApiService.startImageJob(Array.from(selectedDocumentIds), prompt);
     setJobId(res.job_id);
@@ -137,7 +160,6 @@ function ImageTab() {
       if (status.status === "done") {
         setPolling(false);
         if (pollRef.current) clearInterval(pollRef.current);
-        // Fetch the image as a blob URL so auth header is sent
         ApiService.fetchImageBlob(jobId).then((url) => setImageUrl(url));
       } else if (status.status === "error") {
         setPolling(false);
@@ -150,7 +172,7 @@ function ImageTab() {
   return (
     <div className="tab-content">
       <h3 className="tab-section-title">🎨 Image Generator</h3>
-      <p className="tab-desc">Generate a visual from your sources using Imagen 3. Describe what you want or leave blank.</p>
+      <p className="tab-desc">Generate a visual from your sources using Imagen 4. Describe what you want or leave blank.</p>
       <input
         id="image-prompt"
         className="diagram-input"
@@ -175,7 +197,7 @@ function ImageTab() {
       )}
       {imageUrl && (
         <div className="image-result">
-          <img src={imageUrl} alt="Imagen 3 generated" className="generated-image" />
+          <img src={imageUrl} alt="Imagen 4 generated" className="generated-image" />
           <a href={imageUrl} download={`image-${jobId}.png`} className="btn-ghost">Download PNG</a>
         </div>
       )}
@@ -186,9 +208,9 @@ function ImageTab() {
 export default function RightPane() {
   const { rightTab, setRightTab } = useAppStore();
   const tabs = [
-    { key: "audio" as const, label: "🎙 Audio" },
+    { key: "audio"   as const, label: "🎙 Audio" },
     { key: "diagram" as const, label: "📊 Diagram" },
-    { key: "image" as const, label: "🎨 Image" },
+    { key: "image"   as const, label: "🎨 Image" },
   ];
 
   return (
@@ -203,9 +225,9 @@ export default function RightPane() {
           </button>
         ))}
       </div>
-      {rightTab === "audio" && <AudioTab />}
+      {rightTab === "audio"   && <AudioTab />}
       {rightTab === "diagram" && <DiagramTab />}
-      {rightTab === "image" && <ImageTab />}
+      {rightTab === "image"   && <ImageTab />}
     </aside>
   );
 }
