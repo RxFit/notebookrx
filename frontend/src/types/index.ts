@@ -18,3 +18,19 @@ export interface TokenResponse {
   access_token: string; token_type: string;
   user_id: string; email: string; display_name: string;
 }
+export interface Notebook {
+  id: string;
+  title: string;
+  emoji: string;
+  source_count: number;
+  created_at: string;
+  updated_at: string;
+}
+export interface Note {
+  id: string;
+  notebook_id: string;
+  title: string;
+  content: string;
+  created_at: string;
+  updated_at: string;
+}

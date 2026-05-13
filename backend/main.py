@@ -1,7 +1,7 @@
 ﻿from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
-from api import ingest, chat, media
+from api import ingest, chat, media, notebooks, notes
 from auth import router as auth_router
 from db.database import init_db
 from middleware.rate_limit import RateLimitMiddleware
@@ -35,9 +35,11 @@ app.add_middleware(
 app.add_middleware(RateLimitMiddleware, redis_url=settings.REDIS_URL)
 
 app.include_router(auth_router.router)
-app.include_router(ingest.router, prefix="/api/ingest", tags=["ingest"])
-app.include_router(chat.router,   prefix="/api/chat",   tags=["chat"])
-app.include_router(media.router,  prefix="/api/media",  tags=["media"])
+app.include_router(ingest.router,     prefix="/api/ingest",     tags=["ingest"])
+app.include_router(chat.router,       prefix="/api/chat",       tags=["chat"])
+app.include_router(media.router,      prefix="/api/media",      tags=["media"])
+app.include_router(notebooks.router,  prefix="/api/notebooks",  tags=["notebooks"])
+app.include_router(notes.router,      prefix="/api/notes",      tags=["notes"])
 
 @app.get("/health", tags=["system"])
 async def health():
