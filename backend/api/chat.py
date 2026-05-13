@@ -23,6 +23,17 @@ SYSTEM_PROMPT = (
     "=== END SYSTEM INSTRUCTIONS ==="
 )
 
+# Prompt injection shield: block delimiter injection attempts
+_INJECTION_PATTERNS = ["=== SYSTEM", "=== END SYSTEM", "IGNORE PREVIOUS", "DISREGARD", "YOU ARE NOW"]
+
+# Gemini safety settings — block harmful content at medium threshold
+SAFETY_SETTINGS = [
+    types.SafetySetting(category="HARM_CATEGORY_HARASSMENT",        threshold="BLOCK_MEDIUM_AND_ABOVE"),
+    types.SafetySetting(category="HARM_CATEGORY_HATE_SPEECH",       threshold="BLOCK_MEDIUM_AND_ABOVE"),
+    types.SafetySetting(category="HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold="BLOCK_MEDIUM_AND_ABOVE"),
+    types.SafetySetting(category="HARM_CATEGORY_DANGEROUS_CONTENT", threshold="BLOCK_MEDIUM_AND_ABOVE"),
+]
+
 class ChatRequest(BaseModel):
     query: str
     selected_document_ids: list[str]
@@ -44,6 +55,11 @@ async def chat(
 ):
     if not req.selected_document_ids:
         raise HTTPException(400, "No documents selected. Please select at least one source.")
+
+    # ── Prompt injection shield ────────────────────────────────────────────
+    query_upper = req.query.upper()
+    if any(pat in query_upper for pat in _INJECTION_PATTERNS):
+        raise HTTPException(400, "Query contains disallowed patterns.")
 
     verified = await db.execute(
         select(func.count()).select_from(Document).where(
@@ -81,7 +97,11 @@ async def chat(
     response = client.models.generate_content(
         model=settings.CHAT_MODEL,
         contents=prompt,
-        config=types.GenerateContentConfig(temperature=0.0, response_mime_type="application/json"),
+        config=types.GenerateContentConfig(
+            temperature=0.0,
+            response_mime_type="application/json",
+            safety_settings=SAFETY_SETTINGS,
+        ),
     )
     try:
         parsed = json.loads(response.text)
