@@ -148,3 +148,22 @@ Next Steps:
 
 
 
+
+## Phase 5 — Complete ✅ (2026-05-13)
+
+### Frontend Auth
+- [x] JWT auth wired into frontend — AuthContext, LoginPage, api.ts interceptor
+- [x] Login/register UI with glassmorphism design
+- [x] Per-user session isolation via localStorage token
+- [x] Auto-logout on 401 via axios interceptor
+
+### Real TTS
+- [x] Gemini 2.5 Flash Preview TTS — no GCP credentials needed
+- [x] Host A: Charon voice (deep male), Host B: Aoede voice (warm female)
+- [x] pydub audio stitching with 350ms silence between lines
+- [x] MP3 served via /api/media/audio/{job_id}.mp3 endpoint
+
+### Vercel Deploy
+- [x] Frontend deployed to https://frontend-ten-gamma-72.vercel.app
+- [x] CORS wildcard for *.vercel.app on backend
+- [x] 4/4 full-stack E2E smoke tests passing
