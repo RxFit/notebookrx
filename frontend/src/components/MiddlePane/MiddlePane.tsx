@@ -5,6 +5,8 @@ import { ApiService } from "@/lib/api";
 import { ChatMessage, Citation } from "@/types";
 import { v4 as uuidv4 } from "uuid";
 
+interface Props { notebookId: string; }
+
 function CitationBadge({ citation, index }: { citation: Citation; index: number }) {
   const [open, setOpen] = useState(false);
   return (
@@ -15,7 +17,7 @@ function CitationBadge({ citation, index }: { citation: Citation; index: number 
       {open && (
         <div className="citation-popover">
           <p className="citation-excerpt">&ldquo;{citation.excerpt}&rdquo;</p>
-          <p className="citation-id">Chunk: {citation.chunk_id.slice(0, 8)}…</p>
+          <p className="citation-id">Chunk: {citation.chunk_id.slice(0, 8)}&hellip;</p>
         </div>
       )}
     </span>
@@ -39,8 +41,8 @@ function MessageBubble({ msg }: { msg: ChatMessage }) {
   );
 }
 
-export default function MiddlePane() {
-  const { messages, isLoading, selectedDocumentIds, addMessage, setLoading, clearChat } = useAppStore();
+export default function MiddlePane({ notebookId }: Props) {
+  const { messages, isLoading, selectedDocumentIds, documents, addMessage, setLoading, clearChat } = useAppStore();
   const [input, setInput] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -49,6 +51,10 @@ export default function MiddlePane() {
   const sendMessage = async () => {
     const query = input.trim();
     if (!query || isLoading) return;
+    // Use all notebook docs implicitly; fall back to selected if any
+    const docIds = selectedDocumentIds.size > 0
+      ? Array.from(selectedDocumentIds)
+      : documents.map((d) => d.id);
 
     const userMsg: ChatMessage = { id: uuidv4(), role: "user", content: query, timestamp: new Date() };
     addMessage(userMsg);
@@ -56,23 +62,11 @@ export default function MiddlePane() {
     setLoading(true);
 
     try {
-      const res = await ApiService.chat(query, Array.from(selectedDocumentIds));
-      const botMsg: ChatMessage = {
-        id: uuidv4(),
-        role: "assistant",
-        content: res.answer,
-        citations: res.citations,
-        timestamp: new Date(),
-      };
-      addMessage(botMsg);
-    } catch (err: any) {
-      const errMsg: ChatMessage = {
-        id: uuidv4(),
-        role: "assistant",
-        content: err.response?.data?.detail || "An error occurred. Please try again.",
-        timestamp: new Date(),
-      };
-      addMessage(errMsg);
+      const res = await ApiService.chat(query, docIds);
+      addMessage({ id: uuidv4(), role: "assistant", content: res.answer, citations: res.citations, timestamp: new Date() });
+    } catch (err: unknown) {
+      const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+      addMessage({ id: uuidv4(), role: "assistant", content: detail || "An error occurred. Please try again.", timestamp: new Date() });
     } finally {
       setLoading(false);
     }
@@ -82,7 +76,7 @@ export default function MiddlePane() {
     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); }
   };
 
-  const noDocsSelected = selectedDocumentIds.size === 0;
+  const noSources = documents.length === 0;
 
   return (
     <main className="middle-pane">
@@ -96,7 +90,7 @@ export default function MiddlePane() {
           <div className="chat-empty">
             <div className="chat-empty-icon">🔍</div>
             <h3>Ask anything about your sources</h3>
-            <p>Select documents on the left, then ask a question.</p>
+            <p>{noSources ? "Add sources on the left to start chatting." : "Type a question below to get started."}</p>
           </div>
         )}
         {messages.map((msg) => <MessageBubble key={msg.id} msg={msg} />)}
@@ -110,25 +104,25 @@ export default function MiddlePane() {
       </div>
 
       <div className="chat-input-area">
-        {noDocsSelected && (
-          <div className="sandbox-warning">⚠ Select at least one source document to enable chat</div>
+        {noSources && (
+          <div className="sandbox-warning">⚠ Add at least one source to enable chat</div>
         )}
         <div className="chat-input-row">
           <textarea
             id="chat-input"
             className="chat-input"
-            placeholder={noDocsSelected ? "Select sources first…" : "Ask a question about your sources…"}
+            placeholder={noSources ? "Add sources first..." : "Ask a question about your sources..."}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKey}
-            disabled={noDocsSelected || isLoading}
+            disabled={noSources || isLoading}
             rows={2}
           />
           <button
             id="send-btn"
             className="send-btn"
             onClick={sendMessage}
-            disabled={noDocsSelected || isLoading || !input.trim()}
+            disabled={noSources || isLoading || !input.trim()}
           >
             {isLoading ? <div className="spinner" /> : "↑"}
           </button>

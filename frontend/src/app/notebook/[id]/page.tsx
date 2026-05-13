@@ -1,0 +1,123 @@
+"use client";
+import { useState, useEffect, use } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/context/AuthContext";
+import { useAppStore } from "@/store/useAppStore";
+import { NotebookService } from "@/lib/api";
+import LeftPane from "@/components/LeftPane/LeftPane";
+import MiddlePane from "@/components/MiddlePane/MiddlePane";
+import RightPane from "@/components/RightPane/RightPane";
+import LoginPage from "@/components/Auth/LoginPage";
+import SettingsMenu from "@/components/Navigation/SettingsMenu";
+
+export default function NotebookWorkspace({ params }: { params: Promise<{ id: string }> }) {
+  const { id: notebookId } = use(params);
+  const router = useRouter();
+  const { user, isLoading, logout } = useAuth();
+  const { setActiveNotebookId, leftCollapsed, rightCollapsed, toggleLeftPane, toggleRightPane, setTheme } = useAppStore();
+  const [notebookTitle, setNotebookTitle] = useState("Notebook");
+  const [settingsOpen, setSettingsOpen] = useState(false);
+
+  useEffect(() => {
+    const saved = localStorage.getItem("notebookrx_theme") as "light" | "dark" | "system" | null;
+    if (saved) setTheme(saved);
+  }, [setTheme]);
+
+  useEffect(() => {
+    if (!notebookId) return;
+    setActiveNotebookId(notebookId);
+    NotebookService.list().then((nbs) => {
+      const found = nbs.find((n) => n.id === notebookId);
+      if (found) setNotebookTitle(`${found.emoji} ${found.title}`);
+    }).catch(() => {});
+    return () => setActiveNotebookId(null);
+  }, [notebookId, setActiveNotebookId]);
+
+  if (isLoading) {
+    return (
+      <div className="auth-shell">
+        <div className="auth-loading">
+          <span className="loading-spinner" />
+          <span>Loading...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) return <LoginPage />;
+
+  const gridCols = [
+    leftCollapsed ? "0px" : "280px",
+    "1fr",
+    rightCollapsed ? "0px" : "340px",
+  ].join(" ");
+
+  return (
+    <div className="app-shell">
+      <header className="app-header">
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <button
+            className="header-icon-btn"
+            onClick={() => router.push("/")}
+            title="Back to notebooks"
+          >
+            &larr;
+          </button>
+          <a href="/" className="header-brand" style={{ textDecoration: "none" }}>
+            <span className="brand-icon">&#x1F9E0;</span>
+            <span className="brand-name">NotebookRx</span>
+          </a>
+          <span className="notebook-breadcrumb">{notebookTitle}</span>
+        </div>
+
+        <div className="header-actions">
+          <div style={{ position: "relative" }}>
+            <button
+              id="settings-btn"
+              className="header-icon-btn"
+              onClick={() => setSettingsOpen(!settingsOpen)}
+              title="Settings"
+            >
+              &#x2699;&#xFE0F;
+            </button>
+            {settingsOpen && (
+              <SettingsMenu
+                onClose={() => setSettingsOpen(false)}
+                onSignOut={logout}
+              />
+            )}
+          </div>
+          <div className="header-avatar" title={user.email}>
+            {(user.display_name || user.email).charAt(0).toUpperCase()}
+          </div>
+        </div>
+      </header>
+
+      <div className="three-pane-layout" style={{ gridTemplateColumns: gridCols }}>
+        <div className="pane-wrapper">
+          {!leftCollapsed && <LeftPane notebookId={notebookId} />}
+          <button
+            className={`pane-collapse-btn left-collapse ${leftCollapsed ? "collapsed" : ""}`}
+            onClick={toggleLeftPane}
+            title={leftCollapsed ? "Expand sources" : "Collapse sources"}
+          >
+            {leftCollapsed ? ">" : "<"}
+          </button>
+        </div>
+
+        <MiddlePane notebookId={notebookId} />
+
+        <div className="pane-wrapper">
+          {!rightCollapsed && <RightPane notebookId={notebookId} />}
+          <button
+            className={`pane-collapse-btn right-collapse ${rightCollapsed ? "collapsed" : ""}`}
+            onClick={toggleRightPane}
+            title={rightCollapsed ? "Expand studio" : "Collapse studio"}
+          >
+            {rightCollapsed ? "<" : ">"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
