@@ -1,4 +1,4 @@
-﻿import { create } from "zustand";
+import { create } from "zustand";
 import { Document, ChatMessage, Note } from "@/types";
 
 type Theme = "light" | "dark" | "system";
@@ -15,6 +15,10 @@ interface AppState {
   toggleDocument: (id: string) => void;
   selectAll: () => void;
   deselectAll: () => void;
+
+  // Citation → source highlight
+  highlightedDocumentId: string | null;
+  setHighlightedDocument: (id: string | null) => void;
 
   // Chat
   messages: ChatMessage[];
@@ -59,6 +63,16 @@ export const useAppStore = create<AppState>((set, get) => ({
   selectAll: () => set((s) => ({ selectedDocumentIds: new Set(s.documents.map((d) => d.id)) })),
   deselectAll: () => set({ selectedDocumentIds: new Set() }),
 
+  // Citation → source highlight
+  highlightedDocumentId: null,
+  setHighlightedDocument: (id) => {
+    set({ highlightedDocumentId: id });
+    // Auto-clear highlight after 3 seconds
+    if (id !== null) {
+      setTimeout(() => set({ highlightedDocumentId: null }), 3000);
+    }
+  },
+
   // Chat
   messages: [],
   isLoading: false,
@@ -66,7 +80,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   setLoading: (v) => set({ isLoading: v }),
   clearChat: () => set({ messages: [] }),
 
-  // Tabs — Notes is now the first / default tab
+  // Tabs - Notes is the first / default tab
   rightTab: "notes",
   setRightTab: (tab) => set({ rightTab: tab }),
 
