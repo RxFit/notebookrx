@@ -1,31 +1,23 @@
 import axios from "axios";
-import { ChatResponse, IngestResponse, Document, MediaJob, TokenResponse, AuthUser, Notebook, Note } from "@/types";
+import { Notebook, Note, Document, ChatResponse, IngestResponse, MediaJob, AuthUser, TokenResponse } from "@/types";
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-const api = axios.create({ baseURL: BASE_URL });
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
 
-const TOKEN_KEY = "notebookrx_token";
-
-export const authStorage = {
-  getToken: (): string | null => {
-    if (typeof window === "undefined") return null;
-    return localStorage.getItem(TOKEN_KEY) || sessionStorage.getItem(TOKEN_KEY);
-  },
-  setToken: (token: string) => {
-    if (typeof window === "undefined") return;
-    try { localStorage.setItem(TOKEN_KEY, token); } catch { /* quota exceeded */ }
-    sessionStorage.setItem(TOKEN_KEY, token);
-  },
+const authStorage = {
+  getToken: () => (typeof window !== "undefined" ? localStorage.getItem("notebookrx_token") : null),
   clear: () => {
-    if (typeof window === "undefined") return;
-    localStorage.removeItem(TOKEN_KEY);
-    sessionStorage.removeItem(TOKEN_KEY);
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("notebookrx_token");
+      localStorage.removeItem("notebookrx_user");
+    }
   },
 };
 
+export const api = axios.create({ baseURL: BASE_URL });
+
 api.interceptors.request.use((config) => {
   const token = authStorage.getToken();
-  if (token) config.headers["Authorization"] = `Bearer ${token}`;
+  if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
 
@@ -110,6 +102,22 @@ export const ApiService = {
     form.append("content", content);
     if (notebookId) form.append("notebook_id", notebookId);
     const { data } = await api.post("/api/ingest/text", form);
+    return data;
+  },
+  // ← NEW: Website URL ingestion
+  async ingestUrl(url: string, notebookId?: string): Promise<IngestResponse> {
+    const form = new FormData();
+    form.append("url", url);
+    if (notebookId) form.append("notebook_id", notebookId);
+    const { data } = await api.post("/api/ingest/url", form);
+    return data;
+  },
+  // ← NEW: YouTube transcript ingestion
+  async ingestYoutube(youtubeUrl: string, notebookId?: string): Promise<IngestResponse> {
+    const form = new FormData();
+    form.append("youtube_url", youtubeUrl);
+    if (notebookId) form.append("notebook_id", notebookId);
+    const { data } = await api.post("/api/ingest/youtube", form);
     return data;
   },
   async deleteDocument(id: string): Promise<void> {
