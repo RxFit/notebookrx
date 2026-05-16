@@ -10,6 +10,7 @@ export default function LoginPage() {
   const [displayName, setDisplayName] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const BACKEND = process.env.NEXT_PUBLIC_API_URL || "https://notebookrx-api-production.up.railway.app";
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
