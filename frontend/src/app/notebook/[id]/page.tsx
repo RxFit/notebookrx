@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, use } from "react";
+import { useState, useEffect, use, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { useAppStore } from "@/store/useAppStore";
@@ -9,14 +9,26 @@ import MiddlePane from "@/components/MiddlePane/MiddlePane";
 import RightPane from "@/components/RightPane/RightPane";
 import LoginPage from "@/components/Auth/LoginPage";
 import SettingsMenu from "@/components/Navigation/SettingsMenu";
+import SearchBar from "@/components/Navigation/SearchBar";
+import CustomizeModal from "@/components/MiddlePane/CustomizeModal";
 
 export default function NotebookWorkspace({ params }: { params: Promise<{ id: string }> }) {
   const { id: notebookId } = use(params);
   const router = useRouter();
   const { user, isLoading, logout } = useAuth();
   const { setActiveNotebookId, leftCollapsed, rightCollapsed, toggleLeftPane, toggleRightPane, setTheme } = useAppStore();
+
+  // Notebook metadata
   const [notebookTitle, setNotebookTitle] = useState("Notebook");
-  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [notebookEmoji, setNotebookEmoji] = useState("📓");
+  const [systemPrompt, setSystemPrompt]   = useState<string | undefined>(undefined);
+
+  // UI state
+  const [settingsOpen, setSettingsOpen]     = useState(false);
+  const [customizeOpen, setCustomizeOpen]   = useState(false);
+  const [editingTitle, setEditingTitle]     = useState(false);
+  const [titleDraft, setTitleDraft]         = useState("");
+  const titleInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const saved = localStorage.getItem("notebookrx_theme") as "light" | "dark" | "system" | null;
@@ -28,22 +40,42 @@ export default function NotebookWorkspace({ params }: { params: Promise<{ id: st
     setActiveNotebookId(notebookId);
     NotebookService.list().then((nbs) => {
       const found = nbs.find((n) => n.id === notebookId);
-      if (found) setNotebookTitle(`${found.emoji} ${found.title}`);
+      if (found) {
+        setNotebookTitle(found.title);
+        setNotebookEmoji(found.emoji);
+        setSystemPrompt(found.system_prompt ?? undefined);
+      }
     }).catch(() => {});
     return () => setActiveNotebookId(null);
   }, [notebookId, setActiveNotebookId]);
 
+  // Auto-focus title input when editing starts
+  useEffect(() => {
+    if (editingTitle) titleInputRef.current?.select();
+  }, [editingTitle]);
+
+  function startEditTitle() { setTitleDraft(notebookTitle); setEditingTitle(true); }
+
+  async function commitTitle() {
+    setEditingTitle(false);
+    const newTitle = titleDraft.trim() || notebookTitle;
+    if (newTitle === notebookTitle) return;
+    setNotebookTitle(newTitle);
+    try { await NotebookService.update(notebookId, { title: newTitle }); } catch { setNotebookTitle(notebookTitle); }
+  }
+
+  function handleTitleKey(e: React.KeyboardEvent) {
+    if (e.key === "Enter") commitTitle();
+    if (e.key === "Escape") setEditingTitle(false);
+  }
+
   if (isLoading) {
     return (
       <div className="auth-shell">
-        <div className="auth-loading">
-          <span className="loading-spinner" />
-          <span>Loading...</span>
-        </div>
+        <div className="auth-loading"><span className="loading-spinner" /><span>Loading...</span></div>
       </div>
     );
   }
-
   if (!user) return <LoginPage />;
 
   const gridCols = [
@@ -55,37 +87,56 @@ export default function NotebookWorkspace({ params }: { params: Promise<{ id: st
   return (
     <div className="app-shell">
       <header className="app-header">
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <button
-            className="header-icon-btn"
-            onClick={() => router.push("/")}
-            title="Back to notebooks"
-          >
-            &larr;
-          </button>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <button className="header-icon-btn" onClick={() => router.push("/")} title="Back to notebooks">&#x2190;</button>
           <a href="/" className="header-brand" style={{ textDecoration: "none" }}>
             <span className="brand-icon">&#x1F9E0;</span>
             <span className="brand-name">NotebookRx</span>
           </a>
-          <span className="notebook-breadcrumb">{notebookTitle}</span>
+          <span className="notebook-breadcrumb-sep">/</span>
+          {/* Editable notebook title (#10) */}
+          {editingTitle ? (
+            <input
+              ref={titleInputRef}
+              className="notebook-title-edit"
+              value={titleDraft}
+              onChange={(e) => setTitleDraft(e.target.value)}
+              onBlur={commitTitle}
+              onKeyDown={handleTitleKey}
+              id="notebook-title-input"
+            />
+          ) : (
+            <button
+              className="notebook-breadcrumb notebook-title-clickable"
+              onClick={startEditTitle}
+              title="Click to rename notebook"
+              id="notebook-title-display"
+            >
+              {notebookEmoji} {notebookTitle}
+            </button>
+          )}
+        </div>
+
+        {/* Search bar (#11) */}
+        <div className="header-search">
+          <SearchBar notebookId={notebookId} />
         </div>
 
         <div className="header-actions">
+          {/* Customize button (#12) */}
+          <button
+            id="customize-btn"
+            className="header-icon-btn"
+            onClick={() => setCustomizeOpen(true)}
+            title="Customize notebook system prompt"
+          >
+            ✏️
+          </button>
           <div style={{ position: "relative" }}>
-            <button
-              id="settings-btn"
-              className="header-icon-btn"
-              onClick={() => setSettingsOpen(!settingsOpen)}
-              title="Settings"
-            >
+            <button id="settings-btn" className="header-icon-btn" onClick={() => setSettingsOpen(!settingsOpen)} title="Settings">
               &#x2699;&#xFE0F;
             </button>
-            {settingsOpen && (
-              <SettingsMenu
-                onClose={() => setSettingsOpen(false)}
-                onSignOut={logout}
-              />
-            )}
+            {settingsOpen && <SettingsMenu onClose={() => setSettingsOpen(false)} onSignOut={logout} />}
           </div>
           <div className="header-avatar" title={user.email}>
             {(user.display_name || user.email).charAt(0).toUpperCase()}
@@ -93,8 +144,16 @@ export default function NotebookWorkspace({ params }: { params: Promise<{ id: st
         </div>
       </header>
 
-      <div className="three-pane-layout" style={{ gridTemplateColumns: gridCols }}>
+      {customizeOpen && (
+        <CustomizeModal
+          notebookId={notebookId}
+          currentPrompt={systemPrompt}
+          onClose={() => setCustomizeOpen(false)}
+          onSaved={(p) => setSystemPrompt(p)}
+        />
+      )}
 
+      <div className="three-pane-layout" style={{ gridTemplateColumns: gridCols }}>
         <div className={`pane-wrapper ${leftCollapsed ? "pane-wrapper-collapsed" : ""}`}>
           {!leftCollapsed && <LeftPane notebookId={notebookId} />}
           <button
@@ -112,7 +171,7 @@ export default function NotebookWorkspace({ params }: { params: Promise<{ id: st
           </button>
         </div>
 
-        <MiddlePane notebookId={notebookId} />
+        <MiddlePane notebookId={notebookId} systemPrompt={systemPrompt} />
 
         <div className={`pane-wrapper ${rightCollapsed ? "pane-wrapper-collapsed" : ""}`}>
           {!rightCollapsed && <RightPane notebookId={notebookId} />}
@@ -130,7 +189,6 @@ export default function NotebookWorkspace({ params }: { params: Promise<{ id: st
             ) : "&#x276F;"}
           </button>
         </div>
-
       </div>
     </div>
   );
