@@ -7,3 +7,4 @@ healthcheckTimeout = 60
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 3
 numReplicas = 1
+# cache-bust: 20260516-1357
