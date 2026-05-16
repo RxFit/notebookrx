@@ -13,7 +13,7 @@ import json, re
 router = APIRouter()
 client = genai.Client(api_key=settings.GEMINI_API_KEY)
 
-# ── Retrieval prompt: strict, citation-required ──────────────────────────────
+# 🔒 Retrieval prompt: strict, citation-required 🔒
 RETRIEVAL_SYSTEM_PROMPT = (
     "=== SYSTEM INSTRUCTIONS ===\n"
     "You are a strict retrieval assistant. Answer ONLY using the provided Source Chunks.\n"
@@ -24,11 +24,11 @@ RETRIEVAL_SYSTEM_PROMPT = (
     "=== END SYSTEM INSTRUCTIONS ==="
 )
 
-# ── Creative/synthesis prompt: uses sources as inspiration, not verbatim ─────
+# 🎨 Creative/synthesis prompt: uses sources as inspiration, not verbatim 🎨
 CREATIVE_SYSTEM_PROMPT = (
     "=== SYSTEM INSTRUCTIONS ===\n"
     "You are a creative writing assistant. The user has provided Source Chunks from their documents.\n"
-    "Use the source material as the basis and inspiration for your response — draw on the characters,\n"
+    "Use the source material as the basis and inspiration for your response - draw on the characters,\n"
     "events, themes, and world-building present in the chunks, but synthesize and compose freely.\n"
     "Do NOT copy sentences verbatim. Write originally, in your own voice.\n"
     "Return valid JSON: {\"answer\": \"...\", \"citations\": [{\"chunk_id\": \"...\", \"excerpt\": \"...\"}]}\n"
@@ -36,18 +36,18 @@ CREATIVE_SYSTEM_PROMPT = (
     "=== END SYSTEM INSTRUCTIONS ==="
 )
 
-# ── Analysis/summary prompt: synthesis from sources, no strict Q&A ───────────
+# 🔬 Analysis/summary prompt: synthesis from sources, no strict Q&A 🔬
 SYNTHESIS_SYSTEM_PROMPT = (
     "=== SYSTEM INSTRUCTIONS ===\n"
     "You are an analytical assistant. The user has provided Source Chunks from their documents.\n"
     "Synthesize, summarize, compare, or analyze the source material to answer the user's request.\n"
-    "Ground your answer in the source chunks but express it in your own words — do not copy verbatim.\n"
+    "Ground your answer in the source chunks but express it in your own words - do not copy verbatim.\n"
     "Return valid JSON: {\"answer\": \"...\", \"citations\": [{\"chunk_id\": \"...\", \"excerpt\": \"...\"}]}\n"
     "Only cite chunk_ids explicitly provided to you.\n"
     "=== END SYSTEM INSTRUCTIONS ==="
 )
 
-# ── Intent detection ─────────────────────────────────────────────────────────
+# 🎯 Intent detection 🎯
 _CREATIVE_PATTERNS = re.compile(
     r"\b(write|tell|create|compose|draft|generate|imagine|narrate|describe|"
     r"story|poem|essay|script|dialogue|scene|chapter|paragraph|letter|"
@@ -71,7 +71,13 @@ def classify_intent(query: str) -> tuple[str, float]:
 
 
 # Prompt injection shield
-_INJECTION_PATTERNS = ["=== SYSTEM", "=== END SYSTEM", "IGNORE PREVIOUS", "DISREGARD", "YOU ARE NOW"]
+_INJECTION_PATTERNS = [
+    "=== SYSTEM", "=== END SYSTEM", "IGNORE PREVIOUS", "DISREGARD",
+    "YOU ARE NOW", "DAN", "ACT AS", "PRETEND YOU ARE",
+]
+
+# Max query length
+MAX_QUERY_LENGTH = 1000
 
 # Safety settings
 SAFETY_SETTINGS = [
@@ -92,6 +98,7 @@ class ChatRequest(BaseModel):
 class Citation(BaseModel):
     chunk_id: str
     excerpt: str
+    document_id: str = ""   # ← NEW: which source document this chunk belongs to
 
 
 class ChatResponse(BaseModel):
@@ -109,6 +116,10 @@ async def chat(
     if not req.selected_document_ids:
         raise HTTPException(400, "No documents selected. Please select at least one source.")
 
+    # Query length guard
+    if len(req.query) > MAX_QUERY_LENGTH:
+        raise HTTPException(400, f"Query exceeds maximum length of {MAX_QUERY_LENGTH} characters.")
+
     # Prompt injection shield
     query_upper = req.query.upper()
     if any(pat in query_upper for pat in _INJECTION_PATTERNS):
@@ -124,7 +135,7 @@ async def chat(
     if verified.scalar() != len(req.selected_document_ids):
         raise HTTPException(403, "One or more selected documents do not belong to this user.")
 
-    # Classify intent — user-supplied temperature overrides the classified value
+    # Classify intent - user-supplied temperature overrides the classified value
     intent, auto_temp = classify_intent(req.query)
     temperature = req.temperature if req.temperature is not None else auto_temp
     temperature = max(0.0, min(1.0, temperature))  # clamp to [0, 1]
@@ -142,10 +153,11 @@ async def chat(
     top_k = req.top_k if intent == "retrieval" else min(req.top_k * 2, 20)
     params["top_k"] = top_k
 
+    # ← UPDATED: join document_chunks → documents to get document_id per chunk
     sim_sql = (
-        "SELECT id, content FROM document_chunks "
-        "WHERE document_id IN (" + placeholders + ") "
-        "ORDER BY embedding <=> CAST(:qvec AS vector) "
+        "SELECT dc.id, dc.content, dc.document_id FROM document_chunks dc "
+        "WHERE dc.document_id IN (" + placeholders + ") "
+        "ORDER BY dc.embedding <=> CAST(:qvec AS vector) "
         "LIMIT :top_k"
     )
     sim_result = await db.execute(text(sim_sql), params)
@@ -154,6 +166,8 @@ async def chat(
         return ChatResponse(answer="I cannot find this in the sources.", citations=[], intent=intent)
 
     valid_chunk_ids = {c[0] for c in chunks}
+    # Build chunk_id → document_id lookup for citation enrichment
+    chunk_doc_map = {c[0]: c[2] for c in chunks}
     context_str = "\n\n".join(f"[Chunk {c[0]}]\n{c[1]}" for c in chunks)
 
     # Select the right system prompt
@@ -180,7 +194,11 @@ async def chat(
         raise HTTPException(500, "Model returned malformed JSON")
 
     safe_citations = [
-        Citation(chunk_id=c["chunk_id"], excerpt=c.get("excerpt", ""))
+        Citation(
+            chunk_id=c["chunk_id"],
+            excerpt=c.get("excerpt", ""),
+            document_id=chunk_doc_map.get(c["chunk_id"], ""),  # ← NEW: enrich with document_id
+        )
         for c in parsed.get("citations", [])
         if c.get("chunk_id") in valid_chunk_ids
     ]
