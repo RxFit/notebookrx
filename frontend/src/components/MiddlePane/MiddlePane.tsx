@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 import { useState, useRef, useEffect } from "react";
 import { useAppStore } from "@/store/useAppStore";
 import { ApiService } from "@/lib/api";
@@ -9,15 +9,35 @@ interface Props { notebookId: string; }
 
 function CitationBadge({ citation, index }: { citation: Citation; index: number }) {
   const [open, setOpen] = useState(false);
+  const { setHighlightedDocument, toggleLeftPane, leftCollapsed } = useAppStore();
+
+  const handleClick = () => {
+    setOpen(!open);
+    // Jump to source in left pane
+    if (citation.document_id) {
+      // Auto-expand left pane if collapsed
+      if (leftCollapsed) toggleLeftPane();
+      setHighlightedDocument(citation.document_id);
+    }
+  };
+
   return (
     <span className="citation-wrapper">
-      <button className="citation-badge" id={`citation-${citation.chunk_id}`} onClick={() => setOpen(!open)}>
+      <button
+        className="citation-badge"
+        id={`citation-${citation.chunk_id}`}
+        onClick={handleClick}
+        title="Click to jump to source"
+      >
         [{index + 1}]
       </button>
       {open && (
         <div className="citation-popover">
           <p className="citation-excerpt">&ldquo;{citation.excerpt}&rdquo;</p>
           <p className="citation-id">Chunk: {citation.chunk_id.slice(0, 8)}&hellip;</p>
+          {citation.document_id && (
+            <p className="citation-source-hint">↑ Source highlighted in left pane</p>
+          )}
         </div>
       )}
     </span>
@@ -27,7 +47,7 @@ function CitationBadge({ citation, index }: { citation: Citation; index: number 
 function MessageBubble({ msg }: { msg: ChatMessage }) {
   return (
     <div className={`message-bubble ${msg.role}`}>
-      <div className="message-avatar">{msg.role === "user" ? "👤" : "🤖"}</div>
+      <div className="message-avatar">{msg.role === "user" ? "🧑" : "🤖"}</div>
       <div className="message-body">
         <p className="message-text">{msg.content}</p>
         {msg.citations && msg.citations.length > 0 && (
@@ -41,7 +61,6 @@ function MessageBubble({ msg }: { msg: ChatMessage }) {
   );
 }
 
-// Label shown next to the slider value
 function creativityLabel(val: number): string {
   if (val <= 0.1) return "Precise";
   if (val <= 0.3) return "Focused";
@@ -90,7 +109,6 @@ export default function MiddlePane({ notebookId }: Props) {
   const noSources = documents.length === 0;
   const noSelected = selectedDocumentIds.size === 0 && documents.length > 0;
 
-  // Interpolated hue: 220 (blue) at 0 → 280 (purple) at 0.5 → 30 (orange) at 1
   const sliderHue = Math.round(220 + creativity * 100);
   const sliderColor = `hsl(${sliderHue}, 80%, 55%)`;
 
@@ -104,7 +122,7 @@ export default function MiddlePane({ notebookId }: Props) {
       <div className="messages-container">
         {messages.length === 0 && (
           <div className="chat-empty">
-            <div className="chat-empty-icon">🔍</div>
+            <div className="chat-empty-icon">🤖</div>
             <h3>Ask anything about your sources</h3>
             <p>{noSources ? "Add sources on the left to start chatting." : "Type a question below to get started."}</p>
           </div>
@@ -124,10 +142,10 @@ export default function MiddlePane({ notebookId }: Props) {
           <div className="sandbox-warning">⚠ Add at least one source to enable chat</div>
         )}
         {noSelected && (
-          <div className="sandbox-warning">⚠ No sources selected — select sources on the left</div>
+          <div className="sandbox-warning">⚠ No sources selected - select sources on the left</div>
         )}
 
-        {/* ── Creativity slider ── */}
+        {/* 🎨 Creativity slider 🎨 */}
         <div className="creativity-bar">
           <div className="creativity-labels">
             <span className="creativity-label-left">Precise</span>
