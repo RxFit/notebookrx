@@ -12,12 +12,17 @@ import SettingsMenu from "@/components/Navigation/SettingsMenu";
 import SearchBar from "@/components/Navigation/SearchBar";
 import ShareModal from "@/components/Navigation/ShareModal";
 import CustomizeModal from "@/components/MiddlePane/CustomizeModal";
+import PresenceAvatars from "@/components/Navigation/PresenceAvatars";
+import { useCollabPresence } from "@/hooks/useCollabPresence";
 
 export default function NotebookWorkspace({ params }: { params: Promise<{ id: string }> }) {
   const { id: notebookId } = use(params);
   const router = useRouter();
   const { user, isLoading, logout } = useAuth();
   const { setActiveNotebookId, leftCollapsed, rightCollapsed, toggleLeftPane, toggleRightPane, setTheme } = useAppStore();
+
+  // Real-time collaboration (#26)
+  const { users: collabUsers, connected: collabConnected, sendTyping } = useCollabPresence(notebookId);
 
   // Notebook metadata
   const [notebookTitle, setNotebookTitle] = useState("Notebook");
@@ -125,6 +130,8 @@ export default function NotebookWorkspace({ params }: { params: Promise<{ id: st
         </div>
 
         <div className="header-actions">
+          {/* Real-time presence avatars (#26) */}
+          <PresenceAvatars users={collabUsers} connected={collabConnected} />
           {/* Share button (#21) */}
           <button
             id="share-btn"
