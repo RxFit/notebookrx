@@ -1,108 +1,103 @@
-﻿"use client";
-import { useCallback, useEffect, useState } from "react";
-import { useAppStore } from "@/store/useAppStore";
+"use client";
+import { useState, useEffect } from "react";
 import { NoteService, ApiService } from "@/lib/api";
 import { Note } from "@/types";
+import RichEditor from "./RichEditor";
+import DOMPurify from "dompurify";
 
 interface Props { notebookId: string; }
 
 export default function NotesTab({ notebookId }: Props) {
-  const { notes, setNotes, documents } = useAppStore();
-  const [editing, setEditing] = useState<Note | null>(null);
-  const [editTitle, setEditTitle] = useState("");
-  const [editContent, setEditContent] = useState("");
-  const [saving, setSaving] = useState(false);
+  const [notes, setNotes]         = useState<Note[]>([]);
+  const [editing, setEditing]     = useState<Note | null>(null);
+  const [isNew, setIsNew]         = useState(false);
+  const [title, setTitle]         = useState("");
+  const [content, setContent]     = useState("");
+  const [message, setMessage]     = useState("");
   const [converting, setConverting] = useState<string | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
+  useEffect(() => { loadNotes(); }, [notebookId]);
+
+  async function loadNotes() {
+    try { setNotes(await NoteService.list(notebookId)); } catch { /* silently ignore */ }
+  }
+
+  function openNew() { setEditing(null); setIsNew(true); setTitle(""); setContent("<p></p>"); }
+  function openEdit(note: Note) { setEditing(note); setIsNew(false); setTitle(note.title); setContent(note.content); }
+  function cancel() { setEditing(null); setIsNew(false); setTitle(""); setContent(""); }
+
+  async function save() {
+    if (!title.trim()) return;
     try {
-      const data = await NoteService.list(notebookId);
-      setNotes(data);
-    } catch { /* ignore */ }
-  }, [notebookId, setNotes]);
-
-  useEffect(() => { load(); }, [load]);
-
-  const openNew = () => {
-    setEditing({ id: "", notebook_id: notebookId, title: "", content: "", created_at: "", updated_at: "" });
-    setEditTitle("");
-    setEditContent("");
-  };
-
-  const openEdit = (note: Note) => {
-    setEditing(note);
-    setEditTitle(note.title);
-    setEditContent(note.content);
-  };
-
-  const saveNote = async () => {
-    if (!editTitle.trim()) return;
-    setSaving(true);
-    try {
-      if (editing!.id) {
-        await NoteService.update(editing!.id, { title: editTitle, content: editContent });
-      } else {
-        await NoteService.create(notebookId, editTitle, editContent);
+      if (isNew) {
+        const created = await NoteService.create(notebookId, title.trim(), content);
+        setNotes((prev) => [created, ...prev]);
+      } else if (editing) {
+        const updated = await NoteService.update(editing.id, { title: title.trim(), content });
+        setNotes((prev) => prev.map((n) => (n.id === updated.id ? updated : n)));
       }
-      await load();
-      setEditing(null);
-    } catch { /* ignore */ } finally {
-      setSaving(false);
-    }
-  };
+      cancel();
+    } catch { setMessage("Save failed — please try again."); }
+  }
 
-  const deleteNote = async (id: string) => {
+  async function deleteNote(id: string) {
     try {
       await NoteService.remove(id);
-      await load();
+      setNotes((prev) => prev.filter((n) => n.id !== id));
+      if (editing?.id === id) cancel();
     } catch { /* ignore */ }
-  };
+  }
 
-  const convertToSource = async (note: Note) => {
+  async function convertToSource(note: Note) {
     setConverting(note.id);
     try {
-      await ApiService.uploadText(note.title, note.content, notebookId);
-      setMessage(`"${note.title}" added as a source!`);
-      setTimeout(() => setMessage(null), 3000);
-    } catch {
-      setMessage("Failed to convert note to source.");
-    } finally {
-      setConverting(null);
-    }
-  };
+      // Strip HTML tags to plain text for ingestion
+      const plain = DOMPurify.sanitize(note.content, { ALLOWED_TAGS: [] });
+      await ApiService.uploadText(note.title, plain, notebookId);
+      setMessage(`"${note.title}" added as a searchable source.`);
+      setTimeout(() => setMessage(""), 4000);
+    } catch { setMessage("Conversion failed."); } finally { setConverting(null); }
+  }
 
-  if (editing !== null) {
+  // Editor view
+  if (isNew || editing) {
     return (
-      <div className="tab-content notes-editor">
+      <div className="tab-content">
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+          <h3 className="tab-section-title" style={{ margin: 0 }}>{isNew ? "New Note" : "Edit Note"}</h3>
+          <button className="btn-ghost" style={{ fontSize: 11 }} onClick={cancel}>Cancel</button>
+        </div>
+
         <input
-          className="notes-title-input"
+          className="note-title-input"
           placeholder="Note title..."
-          value={editTitle}
-          onChange={(e) => setEditTitle(e.target.value)}
-          autoFocus
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          style={{ marginBottom: 10 }}
         />
-        <textarea
-          className="notes-body-input"
-          placeholder="Start writing..."
-          value={editContent}
-          onChange={(e) => setEditContent(e.target.value)}
-          rows={12}
+
+        <RichEditor
+          content={content}
+          onChange={setContent}
+          placeholder="Write your note here..."
         />
-        <div className="notes-editor-actions">
-          <button className="btn-ghost" onClick={() => setEditing(null)}>Cancel</button>
-          <button className="action-btn" onClick={saveNote} disabled={saving || !editTitle.trim()}>
-            {saving ? "Saving..." : "Save Note"}
+
+        {message && <p style={{ fontSize: 12, color: "var(--danger)", marginTop: 6 }}>{message}</p>}
+
+        <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+          <button className="action-btn" onClick={save} disabled={!title.trim()}>
+            {isNew ? "Create Note" : "Save Changes"}
           </button>
         </div>
       </div>
     );
   }
 
+  // List view
   return (
     <div className="tab-content">
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <h3 className="tab-section-title">📝 Notes</h3>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+        <h3 className="tab-section-title" style={{ margin: 0 }}>📝 Notes</h3>
         <button id="new-note-btn" className="action-btn" style={{ padding: "6px 14px", fontSize: 12 }} onClick={openNew}>
           + New Note
         </button>
@@ -133,10 +128,16 @@ export default function NotesTab({ notebookId }: Props) {
                     {converting === note.id ? "..." : "→ Source"}
                   </button>
                   <button className="btn-ghost" style={{ fontSize: 10 }} onClick={() => openEdit(note)}>Edit</button>
-                  <button className="doc-delete" onClick={() => deleteNote(note.id)} title="Delete note">✕</button>
+                  <button className="doc-delete" onClick={() => deleteNote(note.id)} title="Delete note">🗑</button>
                 </div>
               </div>
-              <p className="note-card-preview">{note.content.slice(0, 120)}{note.content.length > 120 ? "..." : ""}</p>
+              {/* Render rich HTML preview safely */}
+              <div
+                className="note-card-preview rich-preview"
+                dangerouslySetInnerHTML={{
+                  __html: DOMPurify.sanitize(note.content, { ALLOWED_TAGS: ["p","strong","em","h1","h2","h3","ul","ol","li","a","br"] })
+                }}
+              />
             </div>
           ))}
         </div>
