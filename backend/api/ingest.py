@@ -1,11 +1,13 @@
 from fastapi import APIRouter, UploadFile, File, HTTPException, Depends, Form
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import text
+from sqlalchemy import text, select
+from pydantic import BaseModel
 from db.database import get_db
-from db.models import Document, DocumentChunk, User
+from db.models import Document, DocumentChunk, User, Notebook
 from config import settings
 from auth.jwt_handler import get_current_user
 import google.genai as genai
+import httpx
 import pypdf
 import io, uuid, re
 from typing import Optional
@@ -200,7 +202,7 @@ async def delete_document(
 # Supports: public sharing links → drive.google.com/file/d/{ID}/view
 #           direct export links  → docs.google.com exports
 # ─────────────────────────────────────────────────────────────────────────────
-import re as _re
+# re already imported at top
 
 class DriveIngestRequest(BaseModel):
     drive_url: str
@@ -261,7 +263,6 @@ async def ingest_drive(
                         text = resp.text[:200_000]  # 200KB cap
                     elif "pdf" in ct:
                         # Handle PDF binary
-                        import io
                         from pypdf import PdfReader
                         reader = PdfReader(io.BytesIO(resp.content))
                         text = "\n".join(p.extract_text() or "" for p in reader.pages)
