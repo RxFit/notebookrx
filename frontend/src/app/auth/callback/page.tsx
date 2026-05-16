@@ -1,10 +1,11 @@
 "use client";
+import { Suspense } from "react";
 import { useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { authStorage } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 
-export default function AuthCallbackPage() {
+function CallbackInner() {
   const router      = useRouter();
   const params      = useSearchParams();
   const { setUserFromToken } = useAuth();
@@ -17,7 +18,6 @@ export default function AuthCallbackPage() {
 
     if (token) {
       authStorage.setToken(token);
-      // Hydrate auth context directly so the user does not need to refresh
       setUserFromToken({ token, display_name: displayName, email, user_id: userId });
       router.replace("/");
     } else {
@@ -29,8 +29,20 @@ export default function AuthCallbackPage() {
     <div className="auth-shell">
       <div className="auth-loading">
         <span className="loading-spinner" />
-        <span>Completing sign-in...</span>
+        <span>Completing Google sign-in...</span>
       </div>
     </div>
+  );
+}
+
+export default function AuthCallbackPage() {
+  return (
+    <Suspense fallback={
+      <div className="auth-shell">
+        <div className="auth-loading"><span className="loading-spinner" /></div>
+      </div>
+    }>
+      <CallbackInner />
+    </Suspense>
   );
 }
