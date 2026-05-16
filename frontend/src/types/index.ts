@@ -1,5 +1,9 @@
-﻿export interface Document { id: string; filename: string; }
-export interface Citation { chunk_id: string; excerpt: string; }
+export interface Document { id: string; filename: string; }
+export interface Citation {
+  chunk_id: string;
+  excerpt: string;
+  document_id: string;  // which source document this chunk belongs to (for source-jump UX)
+}
 export interface ChatMessage {
   id: string; role: "user" | "assistant";
   content: string; citations?: Citation[]; timestamp: Date;
