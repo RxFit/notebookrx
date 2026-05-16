@@ -28,8 +28,8 @@ interface AppState {
   clearChat: () => void;
 
   // Right pane tabs
-  rightTab: "notes" | "audio" | "diagram" | "image";
-  setRightTab: (tab: "notes" | "audio" | "diagram" | "image") => void;
+  rightTab: "notes" | "summary" | "study" | "audio" | "diagram" | "image";
+  setRightTab: (tab: "notes" | "summary" | "study" | "audio" | "diagram" | "image") => void;
 
   // Notes
   notes: Note[];
