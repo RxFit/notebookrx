@@ -5,6 +5,8 @@ import { ApiService } from "@/lib/api";
 import { MediaJob } from "@/types";
 import dynamic from "next/dynamic";
 import NotesTab from "./NotesTab";
+import SummarizeTab from "./SummarizeTab";
+import StudyGuideTab from "./StudyGuideTab";
 
 const Mermaid = dynamic(() => import("react-mermaid2"), { ssr: false });
 
