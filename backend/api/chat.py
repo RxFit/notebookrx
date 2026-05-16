@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, text
 from pydantic import BaseModel
 from db.database import get_db
-from db.models import Document, User
+from db.models import Document, User, Notebook
 from config import settings
 from auth.jwt_handler import get_current_user
 import google.genai as genai
@@ -91,6 +91,7 @@ SAFETY_SETTINGS = [
 class ChatRequest(BaseModel):
     query: str
     selected_document_ids: list[str]
+    notebook_id: str | None = None   # P1 #12 — used to load custom system prompt
     top_k: int = 8
     temperature: float | None = None  # None = auto-detect via intent classifier
 
@@ -135,6 +136,24 @@ async def chat(
     if verified.scalar() != len(req.selected_document_ids):
         raise HTTPException(403, "One or more selected documents do not belong to this user.")
 
+    # P1 #12 — Load custom system prompt from notebook (if set)
+    custom_system_prompt: str | None = None
+    if req.notebook_id:
+        nb_res = await db.execute(
+            select(Notebook).where(Notebook.id == req.notebook_id, Notebook.user_id == current_user.id)
+        )
+        nb = nb_res.scalar_one_or_none()
+        if nb and nb.system_prompt:
+            custom_system_prompt = nb.system_prompt
+
+    # P1 #15 — Output language from user profile
+    lang_suffix = ""
+    if current_user.output_language and current_user.output_language != "en":
+        lang_names = {"es": "Spanish", "fr": "French", "de": "German", "pt": "Portuguese",
+                      "ja": "Japanese", "ko": "Korean", "zh": "Chinese"}
+        lang_name = lang_names.get(current_user.output_language, current_user.output_language)
+        lang_suffix = f"\n\nIMPORTANT: Respond in {lang_name}."
+
     # Classify intent - user-supplied temperature overrides the classified value
     intent, auto_temp = classify_intent(req.query)
     temperature = req.temperature if req.temperature is not None else auto_temp
@@ -177,7 +196,8 @@ async def chat(
         "retrieval": RETRIEVAL_SYSTEM_PROMPT,
     }[intent]
 
-    prompt = f"{system_prompt}\n\nSOURCE CHUNKS:\n{context_str}\n\nUSER REQUEST: {req.query}"
+    effective_prompt = custom_system_prompt if custom_system_prompt else system_prompt
+    prompt = f"{effective_prompt}\n\nSOURCE CHUNKS:\n{context_str}\n\nUSER REQUEST: {req.query}{lang_suffix}"
 
     response = client.models.generate_content(
         model=settings.CHAT_MODEL,
