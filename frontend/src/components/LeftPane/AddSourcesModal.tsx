@@ -60,7 +60,7 @@ export default function AddSourcesModal({ notebookId, onAdded, onClose }: Props)
     { key: "file", icon: "📄", label: "File Upload" },
     { key: "text", icon: "📝", label: "Paste Text" },
     { key: "url",  icon: "🔗", label: "Website URL", stub: true },
-    { key: "youtube", icon: "▶️", label: "YouTube", stub: true },
+    { key: "youtube", icon: "▶️", label: "YouTube", stub: false },
   ];
 
   return (
