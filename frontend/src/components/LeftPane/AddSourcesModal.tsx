@@ -8,11 +8,12 @@ interface Props {
   onClose: () => void;
 }
 
-type SourceType = "file" | "text" | "url" | "youtube";
+type SourceType = "file" | "text" | "url" | "youtube" | "drive";
 
 export default function AddSourcesModal({ notebookId, onAdded, onClose }: Props) {
   const [activeType, setActiveType] = useState<SourceType | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [driveUrl, setDriveUrl]   = useState("");
   const [message, setMessage] = useState<{ text: string; ok: boolean } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
