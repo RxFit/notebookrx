@@ -1,5 +1,5 @@
 import axios from "axios";
-import { Notebook, Note, Document, ChatResponse, IngestResponse, MediaJob, AuthUser, TokenResponse } from "@/types";
+import { Notebook, Note, Document, ChatResponse, IngestResponse, MediaJob, AuthUser, TokenResponse, StudyGuide, SearchResult } from "@/types";
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
 
@@ -17,7 +17,7 @@ export const api = axios.create({ baseURL: BASE_URL });
 
 api.interceptors.request.use((config) => {
   const token = authStorage.getToken();
-  if (token) config.headers.Authorization = `Bearer ${token}`;
+  if (token) config.headers.Authorization = "Bearer " + token;
   return config;
 });
 
@@ -45,6 +45,9 @@ export const AuthService = {
     const { data } = await api.get("/auth/me");
     return data;
   },
+  async updateLanguage(language: string): Promise<void> {
+    await api.patch("/auth/me", { output_language: language });
+  },
 };
 
 export const NotebookService = {
@@ -56,12 +59,16 @@ export const NotebookService = {
     const { data } = await api.post("/api/notebooks/", { title, emoji });
     return data;
   },
-  async update(id: string, patch: { title?: string; emoji?: string }): Promise<Notebook> {
-    const { data } = await api.patch(`/api/notebooks/${id}`, patch);
+  async update(id: string, patch: { title?: string; emoji?: string; system_prompt?: string }): Promise<Notebook> {
+    const { data } = await api.patch("/api/notebooks/" + id, patch);
     return data;
   },
   async remove(id: string): Promise<void> {
-    await api.delete(`/api/notebooks/${id}`);
+    await api.delete("/api/notebooks/" + id);
+  },
+  async search(notebookId: string, q: string): Promise<SearchResult[]> {
+    const { data } = await api.get("/api/notebooks/" + notebookId + "/search", { params: { q } });
+    return data;
   },
 };
 
@@ -75,11 +82,11 @@ export const NoteService = {
     return data;
   },
   async update(id: string, patch: { title?: string; content?: string }): Promise<Note> {
-    const { data } = await api.patch(`/api/notes/${id}`, patch);
+    const { data } = await api.patch("/api/notes/" + id, patch);
     return data;
   },
   async remove(id: string): Promise<void> {
-    await api.delete(`/api/notes/${id}`);
+    await api.delete("/api/notes/" + id);
   },
 };
 
@@ -104,7 +111,6 @@ export const ApiService = {
     const { data } = await api.post("/api/ingest/text", form);
     return data;
   },
-  // ← NEW: Website URL ingestion
   async ingestUrl(url: string, notebookId?: string): Promise<IngestResponse> {
     const form = new FormData();
     form.append("url", url);
@@ -112,7 +118,6 @@ export const ApiService = {
     const { data } = await api.post("/api/ingest/url", form);
     return data;
   },
-  // ← NEW: YouTube transcript ingestion
   async ingestYoutube(youtubeUrl: string, notebookId?: string): Promise<IngestResponse> {
     const form = new FormData();
     form.append("youtube_url", youtubeUrl);
@@ -121,14 +126,23 @@ export const ApiService = {
     return data;
   },
   async deleteDocument(id: string): Promise<void> {
-    await api.delete(`/api/ingest/${id}`);
+    await api.delete("/api/ingest/" + id);
   },
-  async chat(query: string, selectedDocumentIds: string[], creativity?: number): Promise<ChatResponse> {
+  async chat(query: string, selectedDocumentIds: string[], creativity?: number, notebookId?: string): Promise<ChatResponse> {
     const { data } = await api.post("/api/chat/", {
       query,
       selected_document_ids: selectedDocumentIds,
+      notebook_id: notebookId,
       ...(creativity !== undefined ? { temperature: creativity } : {}),
     });
+    return data;
+  },
+  async summarizeSources(selectedDocumentIds: string[]): Promise<{ summary: string }> {
+    const { data } = await api.post("/api/media/summarize", { selected_document_ids: selectedDocumentIds });
+    return data;
+  },
+  async generateStudyGuide(selectedDocumentIds: string[]): Promise<StudyGuide> {
+    const { data } = await api.post("/api/media/studyguide", { selected_document_ids: selectedDocumentIds });
     return data;
   },
   async generateDiagram(selectedDocumentIds: string[], prompt: string): Promise<{ mermaid: string }> {
@@ -144,24 +158,24 @@ export const ApiService = {
     return data;
   },
   async getJobStatus(jobId: string): Promise<MediaJob> {
-    const { data } = await api.get(`/api/media/jobs/${jobId}`);
+    const { data } = await api.get("/api/media/jobs/" + jobId);
     return data;
   },
   async fetchAudioBlob(jobId: string): Promise<string> {
     const token = authStorage.getToken();
-    const res = await fetch(`${BASE_URL}/api/media/audio/${jobId}.mp3`, {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    const res = await fetch(BASE_URL + "/api/media/audio/" + jobId + ".mp3", {
+      headers: token ? { Authorization: "Bearer " + token } : {},
     });
-    if (!res.ok) throw new Error(`Audio fetch failed: ${res.status}`);
+    if (!res.ok) throw new Error("Audio fetch failed: " + res.status);
     const blob = await res.blob();
     return URL.createObjectURL(blob);
   },
   async fetchImageBlob(jobId: string): Promise<string> {
     const token = authStorage.getToken();
-    const res = await fetch(`${BASE_URL}/api/media/image/${jobId}.png`, {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    const res = await fetch(BASE_URL + "/api/media/image/" + jobId + ".png", {
+      headers: token ? { Authorization: "Bearer " + token } : {},
     });
-    if (!res.ok) throw new Error(`Image fetch failed: ${res.status}`);
+    if (!res.ok) throw new Error("Image fetch failed: " + res.status);
     const blob = await res.blob();
     return URL.createObjectURL(blob);
   },
