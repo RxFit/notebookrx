@@ -1740,3 +1740,64 @@ textarea, input { font-family: inherit; }
   0%, 100% { opacity: 1; }
   50% { opacity: 0.4; }
 }
+/* =====================================================
+   PHASE 3 — P2 POLISH & PRODUCTION
+   ===================================================== */
+
+/* Mono font for code blocks (#18) */
+code, pre, .font-mono { font-family: var(--font-mono, "Roboto Mono", monospace); }
+
+/* Emoji picker (#20) */
+.emoji-picker-wrapper { position: relative; display: inline-block; }
+.emoji-picker-trigger {
+  display: flex; align-items: center; gap: 6px;
+  background: var(--bg-elevated);
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  padding: 8px 14px;
+  transition: border-color 0.15s;
+}
+.emoji-picker-trigger:hover { border-color: var(--accent); }
+.emoji-picker-hint { font-size: 11px; color: var(--text-muted); }
+.emoji-picker-grid {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 4px;
+  padding: 10px;
+  z-index: 300;
+  width: 260px;
+}
+.emoji-option {
+  background: transparent;
+  border: 2px solid transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 20px;
+  padding: 4px;
+  text-align: center;
+  transition: background 0.1s, border-color 0.1s;
+}
+.emoji-option:hover { background: var(--bg-hover); }
+.emoji-selected { border-color: var(--accent) !important; background: rgba(59,130,246,0.1) !important; }
+
+/* Share modal (#21) */
+.share-url-row { display: flex; gap: 8px; align-items: center; }
+.share-url-input {
+  flex: 1;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-family: var(--font-mono, monospace);
+  padding: 8px 10px;
+  outline: none;
+}
