@@ -10,6 +10,7 @@ import RightPane from "@/components/RightPane/RightPane";
 import LoginPage from "@/components/Auth/LoginPage";
 import SettingsMenu from "@/components/Navigation/SettingsMenu";
 import SearchBar from "@/components/Navigation/SearchBar";
+import ShareModal from "@/components/Navigation/ShareModal";
 import CustomizeModal from "@/components/MiddlePane/CustomizeModal";
 
 export default function NotebookWorkspace({ params }: { params: Promise<{ id: string }> }) {
@@ -25,6 +26,7 @@ export default function NotebookWorkspace({ params }: { params: Promise<{ id: st
 
   // UI state
   const [settingsOpen, setSettingsOpen]     = useState(false);
+  const [shareOpen, setShareOpen]         = useState(false);
   const [customizeOpen, setCustomizeOpen]   = useState(false);
   const [editingTitle, setEditingTitle]     = useState(false);
   const [titleDraft, setTitleDraft]         = useState("");
@@ -123,6 +125,15 @@ export default function NotebookWorkspace({ params }: { params: Promise<{ id: st
         </div>
 
         <div className="header-actions">
+          {/* Share button (#21) */}
+          <button
+            id="share-btn"
+            className="header-icon-btn"
+            onClick={() => setShareOpen(true)}
+            title="Share notebook"
+          >
+            🔗
+          </button>
           {/* Customize button (#12) */}
           <button
             id="customize-btn"
@@ -144,6 +155,9 @@ export default function NotebookWorkspace({ params }: { params: Promise<{ id: st
         </div>
       </header>
 
+      {shareOpen && (
+        <ShareModal notebookId={notebookId} onClose={() => setShareOpen(false)} />
+      )}
       {customizeOpen && (
         <CustomizeModal
           notebookId={notebookId}
