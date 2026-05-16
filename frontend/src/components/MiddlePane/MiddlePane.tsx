@@ -5,7 +5,7 @@ import { ApiService } from "@/lib/api";
 import { ChatMessage, Citation } from "@/types";
 import { v4 as uuidv4 } from "uuid";
 
-interface Props { notebookId: string; }
+interface Props { notebookId: string; systemPrompt?: string; }
 
 function CitationBadge({ citation, index }: { citation: Citation; index: number }) {
   const [open, setOpen] = useState(false);
@@ -70,7 +70,7 @@ function creativityLabel(val: number): string {
   return "Imaginative";
 }
 
-export default function MiddlePane({ notebookId }: Props) {
+export default function MiddlePane({ notebookId, systemPrompt }: Props) {
   const { messages, isLoading, selectedDocumentIds, documents, addMessage, setLoading, clearChat } = useAppStore();
   const [input, setInput] = useState("");
   const [creativity, setCreativity] = useState(0.0);
