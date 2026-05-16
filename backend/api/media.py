@@ -155,3 +155,89 @@ async def stream_job_status(job_id: str, current_user: User = Depends(get_curren
         event_generator(), media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
+
+# ─────────────────────────────────────────────
+# P1 #14 — Summarization Tool
+# ─────────────────────────────────────────────
+class SummarizeRequest(BaseModel):
+    selected_document_ids: list[str]
+
+class SummarizeResponse(BaseModel):
+    summary: str
+
+@router.post("/summarize", response_model=SummarizeResponse)
+async def summarize_sources(
+    req: SummarizeRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Generate a 3-5 paragraph executive summary of selected sources."""
+    if not req.selected_document_ids:
+        raise HTTPException(400, "No documents selected")
+    context = await fetch_context(req.selected_document_ids, current_user.id, db, limit=30)
+    resp = client.models.generate_content(
+        model=settings.CHAT_MODEL,
+        contents=(
+            "You are a professional research summarizer. Read the following source material "
+            "and produce a concise executive summary of 3-5 paragraphs. "
+            "Cover the main ideas, key arguments, and significant findings. "
+            "Write in clear, accessible language. Do NOT use bullet points.\n\n"
+            f"SOURCE MATERIAL:\n{context}"
+        ),
+        config=types.GenerateContentConfig(temperature=0.0),
+    )
+    return SummarizeResponse(summary=resp.text.strip())
+
+
+# ─────────────────────────────────────────────
+# P1 #13 — Study Guide Generator
+# ─────────────────────────────────────────────
+class StudySection(BaseModel):
+    heading: str
+    content: str
+
+class StudyQuestion(BaseModel):
+    q: str
+    a: str
+
+class StudyGuideResponse(BaseModel):
+    title: str
+    sections: list[StudySection]
+    questions: list[StudyQuestion]
+
+@router.post("/studyguide", response_model=StudyGuideResponse)
+async def generate_study_guide(
+    req: SummarizeRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Generate a structured study guide with key concepts and Q&A from sources."""
+    if not req.selected_document_ids:
+        raise HTTPException(400, "No documents selected")
+    context = await fetch_context(req.selected_document_ids, current_user.id, db, limit=30)
+    prompt = (
+        "You are an expert educator. Based on the following source material, "
+        "create a structured study guide.\n\n"
+        "Return valid JSON matching this schema exactly:\n"
+        '{"title": "string", "sections": [{"heading": "string", "content": "string"}], '
+        '"questions": [{"q": "string", "a": "string"}]}\n\n'
+        "Include 3-5 sections covering key concepts, and 5-8 practice questions with answers.\n\n"
+        f"SOURCE MATERIAL:\n{context}"
+    )
+    resp = client.models.generate_content(
+        model=settings.CHAT_MODEL,
+        contents=prompt,
+        config=types.GenerateContentConfig(
+            temperature=0.1,
+            response_mime_type="application/json",
+        ),
+    )
+    try:
+        data = json.loads(resp.text)
+        return StudyGuideResponse(
+            title=data.get("title", "Study Guide"),
+            sections=[StudySection(**s) for s in data.get("sections", [])],
+            questions=[StudyQuestion(**q) for q in data.get("questions", [])],
+        )
+    except (json.JSONDecodeError, KeyError, TypeError):
+        raise HTTPException(500, "Failed to generate study guide — model returned unexpected format")
