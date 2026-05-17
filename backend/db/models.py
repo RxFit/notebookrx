@@ -8,14 +8,20 @@ from config import settings
 
 class User(Base):
     __tablename__ = "users"
-    id           = Column(String, primary_key=True)
-    email        = Column(String, unique=True, nullable=False, index=True)
-    display_name = Column(String, nullable=False, default="")
-    password_hash= Column(String, nullable=False)
-    output_language = Column(String, nullable=False, default="en")  # P1 #15 — language preference
-    created_at   = Column(DateTime(timezone=True), server_default=func.now())
-    notebooks    = relationship("Notebook", back_populates="user", cascade="all, delete-orphan")
-    documents    = relationship("Document",  back_populates="user",  cascade="all, delete-orphan")
+    id                   = Column(String, primary_key=True)
+    email                = Column(String, unique=True, nullable=False, index=True)
+    display_name         = Column(String, nullable=False, default="")
+    password_hash        = Column(String, nullable=False)
+    output_language      = Column(String, nullable=False, default="en")  # P1 #15
+    # Google OAuth fields (#24)
+    google_id            = Column(String, nullable=True, unique=True, index=True)
+    oauth_provider       = Column(String, nullable=True)   # "google" | None (password)
+    avatar_url           = Column(String, nullable=True)
+    # Google Drive refresh token (#25)
+    google_refresh_token = Column(String, nullable=True)
+    created_at           = Column(DateTime(timezone=True), server_default=func.now())
+    notebooks            = relationship("Notebook", back_populates="user", cascade="all, delete-orphan")
+    documents            = relationship("Document",  back_populates="user",  cascade="all, delete-orphan")
 
 
 class Notebook(Base):
