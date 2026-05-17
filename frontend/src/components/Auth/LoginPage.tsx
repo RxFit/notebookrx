@@ -23,16 +23,8 @@ export default function LoginPage() {
       } else if (mode === "register") {
         await register(email, password, displayName);
       } else if (mode === "forgot") {
-        const res = await fetch(`${BACKEND}/auth/forgot-password`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email }),
-        });
-        if (!res.ok) {
-          const data = await res.json().catch(() => ({}));
-          throw new Error((data as { detail?: string }).detail || "Failed to send reset email.");
-        }
-        setInfo("If an account exists for that email, you\u2019ll receive a reset link shortly.");
+        // Password reset is coming soon — show friendly stub
+        setInfo("Password reset is coming soon. Contact support@notebook.blue if you\u2019re locked out.");
       }
     } catch (err: unknown) {
       const msg =
@@ -133,7 +125,7 @@ export default function LoginPage() {
             </a>
           </>
         ) : (
-          /* ── Forgot Password View ── */
+          /* ── Forgot Password View (stub — full backend coming soon) ── */
           <form className="auth-form" onSubmit={submit}>
             <p className="auth-subtitle" style={{ marginBottom: 16 }}>
               Enter your email and we&rsquo;ll send you a reset link.
