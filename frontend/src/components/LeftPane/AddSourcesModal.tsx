@@ -1,6 +1,6 @@
 "use client";
 import { useState, useRef, useCallback, useEffect } from "react";
-import { API, authStorage } from "@/lib/api";
+import { authStorage } from "@/lib/api";
 
 type SourceType = "upload" | "url" | "youtube" | "text" | "drive";
 
@@ -135,10 +135,13 @@ export default function AddSourcesModal({ notebookId, onClose, onSourceAdded }: 
     setLoading(true);
     setMessage(null);
     try {
+      const form = new FormData();
+      form.append("url", url);
+      form.append("notebook_id", notebookId);
       const res = await fetch(`${BACKEND}/api/ingest/url`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ url, notebook_id: notebookId }),
+        headers: { Authorization: `Bearer ${token}` },
+        body: form,
       });
       if (!res.ok) throw new Error(await res.text());
       setUrl("");
@@ -157,10 +160,13 @@ export default function AddSourcesModal({ notebookId, onClose, onSourceAdded }: 
     setLoading(true);
     setMessage(null);
     try {
+      const form = new FormData();
+      form.append("youtube_url", url);
+      form.append("notebook_id", notebookId);
       const res = await fetch(`${BACKEND}/api/ingest/youtube`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ url, notebook_id: notebookId }),
+        headers: { Authorization: `Bearer ${token}` },
+        body: form,
       });
       if (!res.ok) throw new Error(await res.text());
       setUrl("");
@@ -179,10 +185,14 @@ export default function AddSourcesModal({ notebookId, onClose, onSourceAdded }: 
     setLoading(true);
     setMessage(null);
     try {
+      const form = new FormData();
+      form.append("title", title || "Pasted text");
+      form.append("content", text);
+      form.append("notebook_id", notebookId);
       const res = await fetch(`${BACKEND}/api/ingest/text`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ content: text, title: title || "Pasted text", notebook_id: notebookId }),
+        headers: { Authorization: `Bearer ${token}` },
+        body: form,
       });
       if (!res.ok) throw new Error(await res.text());
       setText("");
