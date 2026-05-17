@@ -36,7 +36,7 @@ function CitationBadge({ citation, index }: { citation: Citation; index: number 
           <p className="citation-excerpt">&ldquo;{citation.excerpt}&rdquo;</p>
           <p className="citation-id">Chunk: {citation.chunk_id.slice(0, 8)}&hellip;</p>
           {citation.document_id && (
-            <p className="citation-source-hint">↑ Source highlighted in left pane</p>
+            <p className="citation-source-hint">&uarr; Source highlighted in left pane</p>
           )}
         </div>
       )}
@@ -47,7 +47,7 @@ function CitationBadge({ citation, index }: { citation: Citation; index: number 
 function MessageBubble({ msg }: { msg: ChatMessage }) {
   return (
     <div className={`message-bubble ${msg.role}`}>
-      <div className="message-avatar">{msg.role === "user" ? "🧑" : "🤖"}</div>
+      <div className="message-avatar">{msg.role === "user" ? "\uD83D\uDC64" : "\uD83E\uDD16"}</div>
       <div className="message-body">
         <p className="message-text">{msg.content}</p>
         {msg.citations && msg.citations.length > 0 && (
@@ -71,12 +71,33 @@ function creativityLabel(val: number): string {
 }
 
 export default function MiddlePane({ notebookId, systemPrompt }: Props) {
-  const { messages, isLoading, selectedDocumentIds, documents, addMessage, setLoading, clearChat } = useAppStore();
+  const { messages, isLoading, selectedDocumentIds, documents, addMessage, setMessages, setLoading, clearChat } = useAppStore();
   const [input, setInput] = useState("");
   const [creativity, setCreativity] = useState(0.0);
+  const [historyLoaded, setHistoryLoaded] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
+
+  // G1: Load persisted chat history when notebook opens
+  useEffect(() => {
+    if (!notebookId || historyLoaded) return;
+    let cancelled = false;
+    ApiService.getChatHistory(notebookId)
+      .then((history) => {
+        if (!cancelled && history.length > 0) {
+          setMessages(history);
+        }
+      })
+      .catch(() => {}) // silently fail — user can still chat
+      .finally(() => { if (!cancelled) setHistoryLoaded(true); });
+    return () => { cancelled = true; };
+  }, [notebookId, historyLoaded, setMessages]);
+
+  // Reset history loaded flag when notebook changes
+  useEffect(() => {
+    setHistoryLoaded(false);
+  }, [notebookId]);
 
   const sendMessage = async () => {
     const query = input.trim();
@@ -92,13 +113,25 @@ export default function MiddlePane({ notebookId, systemPrompt }: Props) {
     setLoading(true);
 
     try {
-      const res = await ApiService.chat(query, docIds, creativity);
+      const res = await ApiService.chat(query, docIds, creativity, notebookId);
       addMessage({ id: uuidv4(), role: "assistant", content: res.answer, citations: res.citations, timestamp: new Date() });
     } catch (err: unknown) {
       const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
       addMessage({ id: uuidv4(), role: "assistant", content: detail || "An error occurred. Please try again.", timestamp: new Date() });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleClear = async () => {
+    clearChat();
+    // G1: Also clear persisted history
+    if (notebookId) {
+      try {
+        await ApiService.clearChatHistory(notebookId);
+      } catch {
+        // silently fail — local state is already cleared
+      }
     }
   };
 
@@ -115,14 +148,14 @@ export default function MiddlePane({ notebookId, systemPrompt }: Props) {
   return (
     <main className="middle-pane">
       <div className="pane-header">
-        <h2 className="pane-title"><span className="pane-icon">💬</span> Chat</h2>
-        <button className="btn-ghost" onClick={clearChat} id="clear-chat-btn">Clear</button>
+        <h2 className="pane-title"><span className="pane-icon">{"\uD83D\uDCAC"}</span> Chat</h2>
+        <button className="btn-ghost" onClick={handleClear} id="clear-chat-btn">Clear</button>
       </div>
 
       <div className="messages-container">
         {messages.length === 0 && (
           <div className="chat-empty">
-            <div className="chat-empty-icon">🤖</div>
+            <div className="chat-empty-icon">{"\uD83D\uDCAC"}</div>
             <h3>Ask anything about your sources</h3>
             <p>{noSources ? "Add sources on the left to start chatting." : "Type a question below to get started."}</p>
           </div>
@@ -130,7 +163,7 @@ export default function MiddlePane({ notebookId, systemPrompt }: Props) {
         {messages.map((msg) => <MessageBubble key={msg.id} msg={msg} />)}
         {isLoading && (
           <div className="message-bubble assistant">
-            <div className="message-avatar">🤖</div>
+            <div className="message-avatar">{"\uD83E\uDD16"}</div>
             <div className="message-body"><div className="typing-indicator"><span/><span/><span/></div></div>
           </div>
         )}
@@ -139,13 +172,13 @@ export default function MiddlePane({ notebookId, systemPrompt }: Props) {
 
       <div className="chat-input-area">
         {noSources && (
-          <div className="sandbox-warning">⚠ Add at least one source to enable chat</div>
+          <div className="sandbox-warning">{"\u26A0\uFE0F"} Add at least one source to enable chat</div>
         )}
         {noSelected && (
-          <div className="sandbox-warning">⚠ No sources selected - select sources on the left</div>
+          <div className="sandbox-warning">{"\u26A0\uFE0F"} No sources selected - select sources on the left</div>
         )}
 
-        {/* 🎨 Creativity slider 🎨 */}
+        {/* Creativity slider */}
         <div className="creativity-bar">
           <div className="creativity-labels">
             <span className="creativity-label-left">Precise</span>
@@ -187,7 +220,7 @@ export default function MiddlePane({ notebookId, systemPrompt }: Props) {
             onClick={sendMessage}
             disabled={noSources || isLoading || !input.trim()}
           >
-            {isLoading ? <div className="spinner" /> : "↑"}
+            {isLoading ? <div className="spinner" /> : "\u27A4"}
           </button>
         </div>
       </div>
