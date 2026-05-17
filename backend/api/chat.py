@@ -1,53 +1,53 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, text
+from sqlalchemy import select, func, text, delete
 from pydantic import BaseModel
 from db.database import get_db
-from db.models import Document, User, Notebook
+from db.models import Document, User, Notebook, ChatMessage as ChatMessageModel
 from config import settings
 from auth.jwt_handler import get_current_user
 import google.genai as genai
 from google.genai import types
-import json, re
+import json, re, uuid
 
 router = APIRouter()
 client = genai.Client(api_key=settings.GEMINI_API_KEY)
 
-# 🔒 Retrieval prompt: strict, citation-required 🔒
+# Retrieval prompt: strict, citation-required
 RETRIEVAL_SYSTEM_PROMPT = (
     "=== SYSTEM INSTRUCTIONS ===\n"
     "You are a strict retrieval assistant. Answer ONLY using the provided Source Chunks.\n"
     "Do NOT use external knowledge. If the answer is not in the chunks, respond:\n"
-    "\"I cannot find this in the sources.\"\n"
-    "Return valid JSON: {\"answer\": \"...\", \"citations\": [{\"chunk_id\": \"...\", \"excerpt\": \"...\"}]}\n"
+    '"I cannot find this in the sources."\n'
+    'Return valid JSON: {"answer": "...", "citations": [{"chunk_id": "...", "excerpt": "..."}]}\n'
     "Only cite chunk_ids explicitly provided to you.\n"
     "=== END SYSTEM INSTRUCTIONS ==="
 )
 
-# 🎨 Creative/synthesis prompt: uses sources as inspiration, not verbatim 🎨
+# Creative/synthesis prompt: uses sources as inspiration, not verbatim
 CREATIVE_SYSTEM_PROMPT = (
     "=== SYSTEM INSTRUCTIONS ===\n"
     "You are a creative writing assistant. The user has provided Source Chunks from their documents.\n"
     "Use the source material as the basis and inspiration for your response - draw on the characters,\n"
     "events, themes, and world-building present in the chunks, but synthesize and compose freely.\n"
     "Do NOT copy sentences verbatim. Write originally, in your own voice.\n"
-    "Return valid JSON: {\"answer\": \"...\", \"citations\": [{\"chunk_id\": \"...\", \"excerpt\": \"...\"}]}\n"
+    'Return valid JSON: {"answer": "...", "citations": [{"chunk_id": "...", "excerpt": "..."}]}\n'
     "Cite the chunk_ids you drew upon as inspiration.\n"
     "=== END SYSTEM INSTRUCTIONS ==="
 )
 
-# 🔬 Analysis/summary prompt: synthesis from sources, no strict Q&A 🔬
+# Analysis/summary prompt: synthesis from sources, no strict Q&A
 SYNTHESIS_SYSTEM_PROMPT = (
     "=== SYSTEM INSTRUCTIONS ===\n"
     "You are an analytical assistant. The user has provided Source Chunks from their documents.\n"
     "Synthesize, summarize, compare, or analyze the source material to answer the user's request.\n"
     "Ground your answer in the source chunks but express it in your own words - do not copy verbatim.\n"
-    "Return valid JSON: {\"answer\": \"...\", \"citations\": [{\"chunk_id\": \"...\", \"excerpt\": \"...\"}]}\n"
+    'Return valid JSON: {"answer": "...", "citations": [{"chunk_id": "...", "excerpt": "..."}]}\n'
     "Only cite chunk_ids explicitly provided to you.\n"
     "=== END SYSTEM INSTRUCTIONS ==="
 )
 
-# 🎯 Intent detection 🎯
+# Intent detection
 _CREATIVE_PATTERNS = re.compile(
     r"\b(write|tell|create|compose|draft|generate|imagine|narrate|describe|"
     r"story|poem|essay|script|dialogue|scene|chapter|paragraph|letter|"
@@ -69,7 +69,6 @@ def classify_intent(query: str) -> tuple[str, float]:
         return "synthesis", 0.3
     return "retrieval", 0.0
 
-
 # Prompt injection shield
 _INJECTION_PATTERNS = [
     "=== SYSTEM", "=== END SYSTEM", "IGNORE PREVIOUS", "DISREGARD",
@@ -79,7 +78,6 @@ _INJECTION_PATTERNS = [
 # Max query length
 MAX_QUERY_LENGTH = 1000
 
-# Safety settings
 SAFETY_SETTINGS = [
     types.SafetySetting(category="HARM_CATEGORY_HARASSMENT",        threshold="BLOCK_MEDIUM_AND_ABOVE"),
     types.SafetySetting(category="HARM_CATEGORY_HATE_SPEECH",       threshold="BLOCK_MEDIUM_AND_ABOVE"),
@@ -99,13 +97,23 @@ class ChatRequest(BaseModel):
 class Citation(BaseModel):
     chunk_id: str
     excerpt: str
-    document_id: str = ""   # ← NEW: which source document this chunk belongs to
+    document_id: str = ""   # which source document this chunk belongs to
 
 
 class ChatResponse(BaseModel):
     answer: str
     citations: list[Citation]
     intent: str = "retrieval"
+
+
+# —— History response model ——————————————————————————————————
+class ChatHistoryItem(BaseModel):
+    id: str
+    role: str
+    content: str
+    citations: list[Citation] = []
+    intent: str | None = None
+    created_at: str
 
 
 @router.post("/", response_model=ChatResponse)
@@ -172,7 +180,6 @@ async def chat(
     top_k = req.top_k if intent == "retrieval" else min(req.top_k * 2, 20)
     params["top_k"] = top_k
 
-    # ← UPDATED: join document_chunks → documents to get document_id per chunk
     sim_sql = (
         "SELECT dc.id, dc.content, dc.document_id FROM document_chunks dc "
         "WHERE dc.document_id IN (" + placeholders + ") "
@@ -185,7 +192,8 @@ async def chat(
         return ChatResponse(answer="I cannot find this in the sources.", citations=[], intent=intent)
 
     valid_chunk_ids = {c[0] for c in chunks}
-    # Build chunk_id → document_id lookup for citation enrichment
+
+    # Build chunk_id -> document_id lookup for citation enrichment
     chunk_doc_map = {c[0]: c[2] for c in chunks}
     context_str = "\n\n".join(f"[Chunk {c[0]}]\n{c[1]}" for c in chunks)
 
@@ -217,13 +225,95 @@ async def chat(
         Citation(
             chunk_id=c["chunk_id"],
             excerpt=c.get("excerpt", ""),
-            document_id=chunk_doc_map.get(c["chunk_id"], ""),  # ← NEW: enrich with document_id
+            document_id=chunk_doc_map.get(c["chunk_id"], ""),
         )
         for c in parsed.get("citations", [])
         if c.get("chunk_id") in valid_chunk_ids
     ]
+
+    # —— G1: Persist chat messages ——————————————————————————————
+    if req.notebook_id:
+        try:
+            user_msg = ChatMessageModel(
+                id=str(uuid.uuid4()),
+                notebook_id=req.notebook_id,
+                user_id=current_user.id,
+                role="user",
+                content=req.query,
+                intent=intent,
+            )
+            assistant_msg = ChatMessageModel(
+                id=str(uuid.uuid4()),
+                notebook_id=req.notebook_id,
+                user_id=current_user.id,
+                role="assistant",
+                content=parsed.get("answer", ""),
+                citations_json=json.dumps([c.model_dump() for c in safe_citations]) if safe_citations else None,
+                intent=intent,
+            )
+            db.add(user_msg)
+            db.add(assistant_msg)
+            await db.commit()
+        except Exception:
+            # Don't fail the chat response if persistence fails
+            await db.rollback()
+
     return ChatResponse(
         answer=parsed.get("answer", ""),
         citations=safe_citations,
         intent=intent,
     )
+
+
+# —— G1: Chat history endpoints ————————————————————————————————————
+@router.get("/history", response_model=list[ChatHistoryItem])
+async def get_chat_history(
+    notebook_id: str = Query(...),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Retrieve persisted chat history for a notebook, ordered chronologically."""
+    result = await db.execute(
+        select(ChatMessageModel)
+        .where(
+            ChatMessageModel.notebook_id == notebook_id,
+            ChatMessageModel.user_id == current_user.id,
+        )
+        .order_by(ChatMessageModel.created_at.asc())
+    )
+    rows = result.scalars().all()
+
+    items: list[ChatHistoryItem] = []
+    for r in rows:
+        citations = []
+        if r.citations_json:
+            try:
+                citations = [Citation(**c) for c in json.loads(r.citations_json)]
+            except (json.JSONDecodeError, TypeError):
+                pass
+        items.append(ChatHistoryItem(
+            id=r.id,
+            role=r.role,
+            content=r.content,
+            citations=citations,
+            intent=r.intent,
+            created_at=r.created_at.isoformat() if r.created_at else "",
+        ))
+    return items
+
+
+@router.delete("/history")
+async def clear_chat_history(
+    notebook_id: str = Query(...),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Delete all chat messages for a notebook (clear conversation)."""
+    await db.execute(
+        delete(ChatMessageModel).where(
+            ChatMessageModel.notebook_id == notebook_id,
+            ChatMessageModel.user_id == current_user.id,
+        )
+    )
+    await db.commit()
+    return {"status": "cleared"}
