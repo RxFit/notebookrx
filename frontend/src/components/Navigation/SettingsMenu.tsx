@@ -26,7 +26,7 @@ export default function SettingsMenu({ onClose, onSignOut }: Props) {
   const [feedbackSent, setFeedbackSent]   = useState(false);
 
   useEffect(() => {
-    const saved = localStorage.getItem("notebookrx_language") || "en";
+    const saved = localStorage.getItem("notebook_blue_language") || "en";
     setLanguage(saved);
   }, []);
 
@@ -40,12 +40,11 @@ export default function SettingsMenu({ onClose, onSignOut }: Props) {
 
   async function handleLanguageChange(code: string) {
     setLanguage(code);
-    localStorage.setItem("notebookrx_language", code);
+    localStorage.setItem("notebook_blue_language", code);
     try { await AuthService.updateLanguage(code); } catch { /* silently fail */ }
   }
 
   function submitFeedback() {
-    // In production this would POST to a feedback endpoint
     setFeedbackSent(true);
     setFeedback("");
     setTimeout(() => { setShowFeedback(false); setFeedbackSent(false); }, 2500);
@@ -56,7 +55,7 @@ export default function SettingsMenu({ onClose, onSignOut }: Props) {
     return (
       <div className="settings-menu settings-menu-wide" ref={ref} id="help-overlay">
         <div className="settings-header-row">
-          <strong>NotebookRx Help</strong>
+          <strong>notebook.blue Help</strong>
           <button className="modal-close" onClick={() => setShowHelp(false)}>✕</button>
         </div>
         <div className="help-section">
@@ -130,7 +129,7 @@ export default function SettingsMenu({ onClose, onSignOut }: Props) {
 
       <div className="settings-divider" />
 
-      {/* Output Language (#15) */}
+      {/* Output Language */}
       <div className="settings-section">
         <p className="settings-section-label">Output Language</p>
         <select
@@ -147,9 +146,9 @@ export default function SettingsMenu({ onClose, onSignOut }: Props) {
 
       <div className="settings-divider" />
 
-      {/* Help & Feedback (#16) */}
+      {/* Help & Feedback */}
       <button className="settings-item" id="help-btn" onClick={() => setShowHelp(true)}>
-        ❓ NotebookRx Help
+        ❓ Help &amp; Shortcuts
       </button>
       <button className="settings-item" id="feedback-btn" onClick={() => setShowFeedback(true)}>
         💬 Send Feedback
