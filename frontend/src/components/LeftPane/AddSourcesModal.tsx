@@ -1,151 +1,406 @@
-﻿"use client";
-import { useRef, useState } from "react";
-import { ApiService } from "@/lib/api";
+"use client";
+import { useState, useRef, useCallback, useEffect } from "react";
+import { API, authStorage } from "@/lib/api";
+
+type SourceType = "upload" | "url" | "youtube" | "text" | "drive";
 
 interface Props {
   notebookId: string;
-  onAdded: () => void;
   onClose: () => void;
+  onSourceAdded: () => void;
 }
 
-type SourceType = "file" | "text" | "url" | "youtube" | "drive";
+interface Message { text: string; type: "success" | "error" | "info" }
+interface DriveFile { id: string; name: string; mimeType: string; modifiedTime?: string }
 
-export default function AddSourcesModal({ notebookId, onAdded, onClose }: Props) {
-  const [activeType, setActiveType] = useState<SourceType | null>(null);
-  const [uploading, setUploading] = useState(false);
-  const [driveUrl, setDriveUrl]   = useState("");
-  const [message, setMessage] = useState<{ text: string; ok: boolean } | null>(null);
-  const fileRef = useRef<HTMLInputElement>(null);
+// ── Helpers ──────────────────────────────────────────────────────────────────
+const BACKEND = process.env.NEXT_PUBLIC_API_URL || "https://notebookrx-api-production.up.railway.app";
 
-  // Paste-text state
-  const [pasteTitle, setPasteTitle] = useState("");
-  const [pasteContent, setPasteContent] = useState("");
+function mimeIcon(mime: string) {
+  if (mime.includes("pdf"))    return "picture_as_pdf";
+  if (mime.includes("text"))   return "description";
+  if (mime.includes("google")) return "article";
+  return "insert_drive_file";
+}
 
-  // URL stub state
-  const [urlInput, setUrlInput] = useState("");
+// ── Component ─────────────────────────────────────────────────────────────────
+export default function AddSourcesModal({ notebookId, onClose, onSourceAdded }: Props) {
+  const [activeTab, setActiveTab] = useState<SourceType>("upload");
+  const [message,   setMessage]   = useState<Message | null>(null);
+  const [loading,   setLoading]   = useState(false);
 
-  const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setUploading(true);
-    setMessage({ text: `Uploading ${file.name}...`, ok: true });
+  // Upload state
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [dragOver,   setDragOver]  = useState(false);
+
+  // URL/YouTube/Text state
+  const [url,     setUrl]     = useState("");
+  const [text,    setText]    = useState("");
+  const [title,   setTitle]   = useState("");
+
+  // Drive state
+  const [driveFiles,   setDriveFiles]   = useState<DriveFile[]>([]);
+  const [driveLoading, setDriveLoading] = useState(false);
+  const [driveError,   setDriveError]   = useState<string | null>(null);
+  const [selected,     setSelected]     = useState<Set<string>>(new Set());
+
+  const token = authStorage.getToken();
+
+  // ── Drive file list ──────────────────────────────────────────────────────────
+  const loadDriveFiles = useCallback(async () => {
+    setDriveLoading(true);
+    setDriveError(null);
     try {
-      const res = await ApiService.uploadDocument(file, notebookId);
-      setMessage({ text: `Added ${res.filename} (${res.chunks} chunks)`, ok: true });
-      onAdded();
-      setTimeout(onClose, 1500);
-    } catch (err: unknown) {
-      const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
-      setMessage({ text: detail || "Upload failed", ok: false });
+      const res = await fetch(`${BACKEND}/api/ingest/drive/list`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.status === 403) {
+        setDriveError("Drive access not authorised — please sign in with Google first.");
+        return;
+      }
+      if (!res.ok) throw new Error(await res.text());
+      setDriveFiles(await res.json());
+    } catch (e: unknown) {
+      setDriveError((e as Error).message || "Failed to load Drive files.");
     } finally {
-      setUploading(false);
+      setDriveLoading(false);
+    }
+  }, [token]);
+
+  useEffect(() => {
+    if (activeTab === "drive" && token) loadDriveFiles();
+  }, [activeTab, token, loadDriveFiles]);
+
+  const toggleSelect = (id: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+
+  const ingestDriveFiles = async () => {
+    if (!selected.size) return;
+    setLoading(true);
+    setMessage(null);
+    let success = 0;
+    for (const fileId of selected) {
+      try {
+        const res = await fetch(`${BACKEND}/api/ingest/drive`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ file_id: fileId, notebook_id: notebookId }),
+        });
+        if (!res.ok) throw new Error(await res.text());
+        success++;
+      } catch { /* individual failures don't abort batch */ }
+    }
+    setLoading(false);
+    setSelected(new Set());
+    if (success > 0) {
+      setMessage({ text: `${success} file${success > 1 ? "s" : ""} added — processing…`, type: "success" });
+      onSourceAdded();
+    } else {
+      setMessage({ text: "Failed to add Drive files.", type: "error" });
     }
   };
 
-  const handlePasteText = async () => {
-    if (!pasteTitle.trim() || !pasteContent.trim()) return;
-    setUploading(true);
+  // ── Upload handler ────────────────────────────────────────────────────────────
+  const handleFiles = async (files: FileList | null) => {
+    if (!files || !files.length) return;
+    setLoading(true);
+    setMessage(null);
+    const formData = new FormData();
+    Array.from(files).forEach((f) => formData.append("file", f));
+    formData.append("notebook_id", notebookId);
     try {
-      await ApiService.uploadText(pasteTitle.trim(), pasteContent.trim(), notebookId);
-      setMessage({ text: "Text added as source!", ok: true });
-      onAdded();
-      setTimeout(onClose, 1500);
-    } catch {
-      setMessage({ text: "Failed to add text", ok: false });
+      const res = await fetch(`${BACKEND}/api/ingest/`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+      });
+      if (!res.ok) throw new Error(await res.text());
+      setMessage({ text: "File added — processing…", type: "success" });
+      onSourceAdded();
+    } catch (e: unknown) {
+      setMessage({ text: (e as Error).message || "Upload failed.", type: "error" });
     } finally {
-      setUploading(false);
+      setLoading(false);
     }
   };
 
-  const SOURCE_TYPES: { key: SourceType; icon: string; label: string; stub?: boolean }[] = [
-    { key: "file", icon: "📄", label: "File Upload" },
-    { key: "text", icon: "📝", label: "Paste Text" },
-    { key: "url",  icon: "🔗", label: "Website URL", stub: true },
-    { key: "youtube", icon: "▶️", label: "YouTube", stub: false },
+  // ── URL handler ───────────────────────────────────────────────────────────────
+  const handleUrl = async () => {
+    if (!url.trim()) return;
+    setLoading(true);
+    setMessage(null);
+    try {
+      const res = await fetch(`${BACKEND}/api/ingest/url`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ url, notebook_id: notebookId }),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      setUrl("");
+      setMessage({ text: "Website added — processing…", type: "success" });
+      onSourceAdded();
+    } catch (e: unknown) {
+      setMessage({ text: (e as Error).message || "URL ingestion failed.", type: "error" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ── YouTube handler ───────────────────────────────────────────────────────────
+  const handleYouTube = async () => {
+    if (!url.trim()) return;
+    setLoading(true);
+    setMessage(null);
+    try {
+      const res = await fetch(`${BACKEND}/api/ingest/youtube`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ url, notebook_id: notebookId }),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      setUrl("");
+      setMessage({ text: "YouTube transcript added — processing…", type: "success" });
+      onSourceAdded();
+    } catch (e: unknown) {
+      setMessage({ text: (e as Error).message || "YouTube ingestion failed.", type: "error" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ── Text paste handler ────────────────────────────────────────────────────────
+  const handleText = async () => {
+    if (!text.trim()) return;
+    setLoading(true);
+    setMessage(null);
+    try {
+      const res = await fetch(`${BACKEND}/api/ingest/text`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ content: text, title: title || "Pasted text", notebook_id: notebookId }),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      setText("");
+      setTitle("");
+      setMessage({ text: "Text added — processing…", type: "success" });
+      onSourceAdded();
+    } catch (e: unknown) {
+      setMessage({ text: (e as Error).message || "Text ingestion failed.", type: "error" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ── Render ────────────────────────────────────────────────────────────────────
+  const TABS: { key: SourceType; label: string; icon: string }[] = [
+    { key: "upload",  label: "Upload",  icon: "upload_file" },
+    { key: "url",     label: "Website", icon: "language" },
+    { key: "youtube", label: "YouTube", icon: "smart_display" },
+    { key: "text",    label: "Paste",   icon: "edit_note" },
+    { key: "drive",   label: "Drive",   icon: "add_to_drive" },
   ];
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-card modal-card-wide" onClick={(e) => e.stopPropagation()}>
+      <div className="modal-container" onClick={(e) => e.stopPropagation()}>
+        {/* Header */}
         <div className="modal-header">
           <h2 className="modal-title">Add Sources</h2>
-          <button className="modal-close" onClick={onClose}>✕</button>
+          <button className="modal-close" onClick={onClose} aria-label="Close">
+            <span className="material-symbols-rounded">close</span>
+          </button>
         </div>
 
-        {!activeType ? (
-          <div className="modal-body">
-            <p className="modal-hint">Choose how to add a source to this notebook</p>
-            <div className="source-type-grid">
-              {SOURCE_TYPES.map((t) => (
-                <button
-                  key={t.key}
-                  id={`source-type-${t.key}`}
-                  className={`source-type-btn ${t.stub ? "stub" : ""}`}
-                  onClick={() => {
-                    if (t.stub) { setMessage({ text: `${t.label} coming soon!`, ok: true }); return; }
-                    if (t.key === "file") { setActiveType("file"); setTimeout(() => fileRef.current?.click(), 50); }
-                    else setActiveType(t.key);
-                  }}
-                >
-                  <span className="source-type-icon">{t.icon}</span>
-                  <span className="source-type-label">{t.label}</span>
-                  {t.stub && <span className="source-type-badge">Soon</span>}
-                </button>
-              ))}
-            </div>
-            {message && (
-              <p className="modal-message" style={{ color: message.ok ? "var(--success)" : "var(--danger)" }}>
-                {message.text}
-              </p>
-            )}
-          </div>
-        ) : activeType === "file" ? (
-          <div className="modal-body">
-            <input ref={fileRef} type="file" accept=".pdf,.txt,.json,.md" onChange={handleFile} hidden />
-            <div
-              className="upload-zone upload-zone-large"
-              onClick={() => !uploading && fileRef.current?.click()}
-              onDragOver={(e) => e.preventDefault()}
-              onDrop={(e) => {
-                e.preventDefault();
-                const file = e.dataTransfer.files?.[0];
-                if (file && fileRef.current) {
-                  const dt = new DataTransfer(); dt.items.add(file);
-                  fileRef.current.files = dt.files;
-                  fileRef.current.dispatchEvent(new Event("change", { bubbles: true }));
-                }
-              }}
+        <p className="modal-subtitle">Choose how to add a source to this notebook</p>
+
+        {/* Tabs */}
+        <div className="source-tabs">
+          {TABS.map((t) => (
+            <button
+              key={t.key}
+              className={`source-tab${activeTab === t.key ? " active" : ""}`}
+              onClick={() => { setActiveTab(t.key); setMessage(null); }}
             >
-              {uploading ? <div className="spinner" /> : (
-                <>
-                  <div className="upload-icon">📄</div>
-                  <p className="upload-text">Drop a file or click to browse</p>
-                  <p className="upload-hint">PDF · TXT · JSON · MD — Max 20 MB</p>
-                </>
-              )}
-              {message && <p style={{ color: message.ok ? "var(--success)" : "var(--danger)", fontSize: 12, marginTop: 8 }}>{message.text}</p>}
+              <span className="material-symbols-rounded">{t.icon}</span>
+              {t.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Tab content */}
+        <div className="source-tab-content">
+
+          {/* ── Upload ── */}
+          {activeTab === "upload" && (
+            <div
+              className={`drop-zone${dragOver ? " drag-over" : ""}`}
+              onClick={() => fileInputRef.current?.click()}
+              onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+              onDragLeave={() => setDragOver(false)}
+              onDrop={(e) => { e.preventDefault(); setDragOver(false); handleFiles(e.dataTransfer.files); }}
+            >
+              <span className="material-symbols-rounded drop-icon">cloud_upload</span>
+              <p className="drop-label">Drop a file or click to browse</p>
+              <p className="drop-hint">PDF · TXT · JSON · MD — Max 20 MB</p>
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                accept=".pdf,.txt,.json,.md"
+                style={{ display: "none" }}
+                onChange={(e) => handleFiles(e.target.files)}
+              />
             </div>
-            <button className="btn-ghost" style={{ marginTop: 12 }} onClick={() => setActiveType(null)}>← Back</button>
-          </div>
-        ) : activeType === "text" ? (
-          <div className="modal-body" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            <input className="modal-input" placeholder="Source title" value={pasteTitle} onChange={(e) => setPasteTitle(e.target.value)} />
-            <textarea
-              className="modal-textarea"
-              placeholder="Paste your text here..."
-              rows={8}
-              value={pasteContent}
-              onChange={(e) => setPasteContent(e.target.value)}
-            />
-            {message && <p style={{ color: message.ok ? "var(--success)" : "var(--danger)", fontSize: 12 }}>{message.text}</p>}
-            <div className="modal-footer">
-              <button className="btn-ghost" onClick={() => setActiveType(null)}>← Back</button>
-              <button className="action-btn" onClick={handlePasteText} disabled={uploading || !pasteTitle.trim() || !pasteContent.trim()}>
-                {uploading ? "Adding..." : "Add as Source"}
+          )}
+
+          {/* ── Website URL ── */}
+          {activeTab === "url" && (
+            <div className="source-form">
+              <label className="source-label">Website URL</label>
+              <input
+                className="source-input"
+                type="url"
+                placeholder="https://example.com/article"
+                value={url}
+                onChange={(e) => setUrl(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleUrl()}
+              />
+              <button className="source-submit" onClick={handleUrl} disabled={loading || !url.trim()}>
+                {loading ? <span className="loading-spinner-sm" /> : "Add Website"}
               </button>
             </div>
+          )}
+
+          {/* ── YouTube ── */}
+          {activeTab === "youtube" && (
+            <div className="source-form">
+              <label className="source-label">YouTube URL</label>
+              <input
+                className="source-input"
+                type="url"
+                placeholder="https://youtube.com/watch?v=..."
+                value={url}
+                onChange={(e) => setUrl(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleYouTube()}
+              />
+              <button className="source-submit" onClick={handleYouTube} disabled={loading || !url.trim()}>
+                {loading ? <span className="loading-spinner-sm" /> : "Add YouTube Transcript"}
+              </button>
+            </div>
+          )}
+
+          {/* ── Paste Text ── */}
+          {activeTab === "text" && (
+            <div className="source-form">
+              <label className="source-label">Title (optional)</label>
+              <input
+                className="source-input"
+                type="text"
+                placeholder="My notes"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+              />
+              <label className="source-label" style={{ marginTop: 8 }}>Content</label>
+              <textarea
+                className="source-textarea"
+                placeholder="Paste text content here…"
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+                rows={8}
+              />
+              <button className="source-submit" onClick={handleText} disabled={loading || !text.trim()}>
+                {loading ? <span className="loading-spinner-sm" /> : "Add Text"}
+              </button>
+            </div>
+          )}
+
+          {/* ── Google Drive ── */}
+          {activeTab === "drive" && (
+            <div className="drive-picker">
+              <div className="drive-picker-header">
+                <span className="drive-picker-hint">
+                  Select files from your Google Drive to import as sources.
+                </span>
+                <button className="drive-refresh-btn" onClick={loadDriveFiles} disabled={driveLoading} title="Refresh">
+                  <span className={`material-symbols-rounded${driveLoading ? " spin" : ""}`}>refresh</span>
+                </button>
+              </div>
+
+              {driveError && (
+                <div className="drive-error">
+                  <span className="material-symbols-rounded">error_outline</span>
+                  {driveError}
+                  {driveError.includes("sign in") && (
+                    <a href={`${BACKEND}/auth/google`} className="drive-reauth-link">
+                      Sign in with Google
+                    </a>
+                  )}
+                </div>
+              )}
+
+              {driveLoading && (
+                <div className="drive-loading">
+                  <span className="loading-spinner" />
+                  <span>Loading Drive files…</span>
+                </div>
+              )}
+
+              {!driveLoading && !driveError && driveFiles.length === 0 && (
+                <div className="drive-empty">
+                  <span className="material-symbols-rounded" style={{ fontSize: 40 }}>folder_open</span>
+                  <p>No compatible files found in your Drive.</p>
+                  <p className="drive-empty-hint">PDFs, Google Docs, and plain text files are supported.</p>
+                </div>
+              )}
+
+              {!driveLoading && driveFiles.length > 0 && (
+                <ul className="drive-file-list">
+                  {driveFiles.map((f) => (
+                    <li
+                      key={f.id}
+                      className={`drive-file-item${selected.has(f.id) ? " selected" : ""}`}
+                      onClick={() => toggleSelect(f.id)}
+                    >
+                      <span className="material-symbols-rounded drive-file-icon">{mimeIcon(f.mimeType)}</span>
+                      <span className="drive-file-name">{f.name}</span>
+                      {selected.has(f.id) && (
+                        <span className="material-symbols-rounded drive-check">check_circle</span>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              )}
+
+              {selected.size > 0 && (
+                <button
+                  className="source-submit"
+                  onClick={ingestDriveFiles}
+                  disabled={loading}
+                  style={{ marginTop: 12 }}
+                >
+                  {loading
+                    ? <span className="loading-spinner-sm" />
+                    : `Import ${selected.size} file${selected.size > 1 ? "s" : ""}`}
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Status message */}
+        {message && (
+          <div className={`source-message source-message--${message.type}`}>
+            <span className="material-symbols-rounded">
+              {message.type === "success" ? "check_circle" : message.type === "error" ? "error" : "info"}
+            </span>
+            {message.text}
           </div>
-        ) : null}
+        )}
       </div>
     </div>
   );
