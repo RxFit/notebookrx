@@ -1,7 +1,7 @@
-﻿﻿@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap");
 @import "tailwindcss";
 
-/* ── Design Tokens ─────────────────────────────────────── */
+/* ?? Design Tokens ??????????????????????????????????????? */
 :root {
   --bg-base:      #050505;
   --bg-surface:   #0A0A0A;
@@ -31,13 +31,13 @@
   --shadow-glow: 0 0 20px var(--accent-glow);  --shadow-lg: 0 8px 48px rgba(0,0,0,0.95);
 }
 
-/* ── Reset ─────────────────────────────────────────────── */
+/* ?? Reset ??????????????????????????????????????????????? */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { height: 100%; font-family: var(--font-inter, "Inter", sans-serif); background: var(--bg-base); color: var(--text-primary); }
 button { cursor: pointer; font-family: inherit; }
 textarea, input { font-family: inherit; }
 
-/* ── App Shell ─────────────────────────────────────────── */
+/* ?? App Shell ??????????????????????????????????????????? */
 .app-shell {
   display: flex;
   flex-direction: column;
@@ -86,7 +86,7 @@ textarea, input { font-family: inherit; }
   letter-spacing: 0.3px;
 }
 
-/* ── Three Pane Layout ─────────────────────────────────── */
+/* ?? Three Pane Layout ??????????????????????????????????? */
 .three-pane-layout {
   display: grid;
   grid-template-columns: 280px 1fr 340px;
@@ -95,7 +95,7 @@ textarea, input { font-family: inherit; }
   gap: 0;
 }
 
-/* ── Pane Shared ───────────────────────────────────────── */
+/* ?? Pane Shared ????????????????????????????????????????? */
 .left-pane, .middle-pane, .right-pane {
   display: flex;
   flex-direction: column;
@@ -131,7 +131,7 @@ textarea, input { font-family: inherit; }
   border: 1px solid var(--border);
 }
 
-/* ── Upload Zone ───────────────────────────────────────── */
+/* ?? Upload Zone ????????????????????????????????????????? */
 .upload-zone {
   margin: 14px;
   border: 1.5px dashed var(--border);
@@ -153,7 +153,7 @@ textarea, input { font-family: inherit; }
 .upload-progress { font-size: 11px; color: var(--success); margin-top: 8px; font-weight: 500; }
 .upload-spinner { display: flex; justify-content: center; padding: 8px; }
 
-/* ── Document List ─────────────────────────────────────── */
+/* ?? Document List ??????????????????????????????????????? */
 .select-controls {
   display: flex;
   align-items: center;
@@ -217,7 +217,7 @@ textarea, input { font-family: inherit; }
   line-height: 2;
 }
 
-/* ── Middle Pane ─────────────────────────────────────────── */
+/* ?? Middle Pane ??????????????????????????????????????????? */
 .messages-container {
   flex: 1;
   overflow-y: auto;
@@ -286,7 +286,7 @@ textarea, input { font-family: inherit; }
 .message-time { font-size: 10px; color: var(--text-muted); }
 .message-bubble.user .message-time { text-align: right; }
 
-/* ── Citations ─────────────────────────────────────────── */
+/* ?? Citations ??????????????????????????????????????????? */
 .citations-row { display: flex; flex-wrap: wrap; gap: 4px; }
 .citation-wrapper { position: relative; display: inline-block; }
 .citation-badge {
@@ -316,7 +316,7 @@ textarea, input { font-family: inherit; }
 .citation-excerpt { font-size: 12px; color: var(--text-secondary); font-style: italic; margin-bottom: 4px; }
 .citation-id { font-size: 10px; color: var(--text-muted); font-family: monospace; }
 
-/* ── Chat Input ─────────────────────────────────────────── */
+/* ?? Chat Input ??????????????????????????????????????????? */
 .chat-input-area {
   border-top: 1px solid var(--border);
   padding: 14px 20px;
@@ -364,7 +364,7 @@ textarea, input { font-family: inherit; }
 .send-btn:hover:not(:disabled) { background: var(--accent-hover); transform: translateY(-1px); box-shadow: var(--shadow-glow); }
 .send-btn:disabled { opacity: 0.3; cursor: not-allowed; }
 
-/* ── Right Pane ─────────────────────────────────────────── */
+/* ?? Right Pane ??????????????????????????????????????????? */
 .tab-bar {
   display: flex;
   border-bottom: 1px solid var(--border);
@@ -453,7 +453,7 @@ textarea, input { font-family: inherit; }
 .mermaid-source summary { font-size: 11px; color: var(--text-muted); cursor: pointer; }
 .mermaid-source pre { font-size: 11px; margin-top: 8px; overflow-x: auto; color: var(--text-secondary); }
 
-/* ── Shared Utilities ────────────────────────────────────── */
+/* ?? Shared Utilities ?????????????????????????????????????? */
 .btn-ghost {
   background: none;
   border: 1px solid var(--border);
@@ -491,19 +491,19 @@ textarea, input { font-family: inherit; }
 .typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
 .typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
 
-/* ── Animations ─────────────────────────────────────────── */
+/* ?? Animations ??????????????????????????????????????????? */
 @keyframes spin    { to { transform: rotate(360deg); } }
 @keyframes bounce  { 0%, 80%, 100% { transform: translateY(0); } 40% { transform: translateY(-6px); } }
 @keyframes slideIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 
-/* ── Scrollbars ─────────────────────────────────────────── */
+/* ?? Scrollbars ??????????????????????????????????????????? */
 ::-webkit-scrollbar { width: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
 
 
-/* ── Auth Page ─────────────────────────────────────────── */
+/* ?? Auth Page ??????????????????????????????????????????? */
 .auth-shell {
   min-height: 100vh;
   display: flex;
@@ -637,7 +637,7 @@ textarea, input { font-family: inherit; }
 }
 .auth-submit:disabled { opacity: 0.5; cursor: not-allowed; }
 
-/* ── Header User Info ─────────────────────────────────── */
+/* ?? Header User Info ??????????????????????????????????? */
 .header-user {
   display: flex;
   align-items: center;
@@ -661,7 +661,7 @@ textarea, input { font-family: inherit; }
   color: var(--danger);
 }
 
-/* ── Image Result ─────────────────────────────────────────── */
+/* ?? Image Result ??????????????????????????????????????????? */
 .image-result {
   display: flex;
   flex-direction: column;
@@ -674,9 +674,9 @@ textarea, input { font-family: inherit; }
   box-shadow: var(--shadow-md);
 }
 
-/* ─────────────────────────────────────────────────────────────
+/* ?????????????????????????????????????????????????????????????
    LIGHT MODE TOKENS
-   ───────────────────────────────────────────────────────────── */
+   ????????????????????????????????????????????????????????????? */
 [data-theme="light"] {
   --bg-base: #0A0A0A;
   --bg-surface: #0E0E0E;
@@ -694,9 +694,9 @@ textarea, input { font-family: inherit; }
   --shadow-glow: 0 0 20px var(--accent-glow);  --shadow-lg: 0 8px 48px rgba(0,0,0,0.95);
 }
 
-/* ─────────────────────────────────────────────────────────────
+/* ?????????????????????????????????????????????????????????????
    HEADER REDESIGN
-   ───────────────────────────────────────────────────────────── */
+   ????????????????????????????????????????????????????????????? */
 .header-actions {
   display: flex;
   align-items: center;
@@ -738,9 +738,9 @@ textarea, input { font-family: inherit; }
   white-space: nowrap;
 }
 
-/* ─────────────────────────────────────────────────────────────
+/* ?????????????????????????????????????????????????????????????
    SETTINGS MENU
-   ───────────────────────────────────────────────────────────── */
+   ????????????????????????????????????????????????????????????? */
 .settings-menu {
   position: absolute;
   top: calc(100% + 8px);
@@ -791,9 +791,9 @@ textarea, input { font-family: inherit; }
 .settings-item:hover { background: var(--bg-hover); }
 .settings-item-danger { color: var(--danger) !important; }
 
-/* ─────────────────────────────────────────────────────────────
+/* ?????????????????????????????????????????????????????????????
    DASHBOARD SHELL
-   ───────────────────────────────────────────────────────────── */
+   ????????????????????????????????????????????????????????????? */
 .dash-shell {
   flex: 1;
   overflow-y: auto;
@@ -832,9 +832,9 @@ textarea, input { font-family: inherit; }
 .dash-empty-icon { font-size: 48px; display: block; margin-bottom: 8px; }
 .dash-empty h3 { font-size: 18px; font-weight: 600; color: var(--text-secondary); }
 
-/* ─────────────────────────────────────────────────────────────
+/* ?????????????????????????????????????????????????????????????
    DASHBOARD FILTERS
-   ───────────────────────────────────────────────────────────── */
+   ????????????????????????????????????????????????????????????? */
 .dash-filters {
   display: flex;
   align-items: center;
@@ -892,9 +892,9 @@ textarea, input { font-family: inherit; }
   cursor: pointer;
 }
 
-/* ─────────────────────────────────────────────────────────────
+/* ?????????????????????????????????????????????????????????????
    NOTEBOOK GRID & CARDS
-   ───────────────────────────────────────────────────────────── */
+   ????????????????????????????????????????????????????????????? */
 .notebook-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
@@ -1004,9 +1004,9 @@ textarea, input { font-family: inherit; }
   margin-top: auto;
 }
 
-/* ─────────────────────────────────────────────────────────────
+/* ?????????????????????????????????????????????????????????????
    MODALS (shared)
-   ───────────────────────────────────────────────────────────── */
+   ????????????????????????????????????????????????????????????? */
 .modal-overlay {
   position: fixed; inset: 0;
   background: rgba(0,0,0,0.6);
@@ -1121,9 +1121,9 @@ textarea, input { font-family: inherit; }
 }
 .upload-zone-large { padding: 40px 20px; min-height: 160px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
 
-/* ─────────────────────────────────────────────────────────────
-   LEFT PANE — ADD SOURCES BTN
-   ───────────────────────────────────────────────────────────── */
+/* ?????????????????????????????????????????????????????????????
+   LEFT PANE ? ADD SOURCES BTN
+   ????????????????????????????????????????????????????????????? */
 .left-pane-add { padding: 14px 14px 6px; }
 .add-sources-btn {
   width: 100%;
@@ -1139,9 +1139,9 @@ textarea, input { font-family: inherit; }
 }
 .add-sources-btn:hover { transform: translateY(-1px); box-shadow: var(--shadow-glow); }
 
-/* ─────────────────────────────────────────────────────────────
+/* ?????????????????????????????????????????????????????????????
    NOTES TAB
-   ───────────────────────────────────────────────────────────── */
+   ????????????????????????????????????????????????????????????? */
 .notes-editor { gap: 10px !important; }
 .notes-title-input {
   background: none;
@@ -1185,9 +1185,9 @@ textarea, input { font-family: inherit; }
 .note-card-actions { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
 .note-card-preview { font-size: 11px; color: var(--text-muted); line-height: 1.6; }
 
-/* ─────────────────────────────────────────────────────────────
+/* ?????????????????????????????????????????????????????????????
    PANE COLLAPSE
-   ───────────────────────────────────────────────────────────── */
+   ????????????????????????????????????????????????????????????? */
 .three-pane-layout {
   transition: grid-template-columns 0.25s ease;
 }
@@ -1218,9 +1218,9 @@ textarea, input { font-family: inherit; }
 
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
-/* ─────────────────────────────────────────────────────────────
-   PANE COLLAPSE — UPDATED: 40px tab strip stays visible
-   ───────────────────────────────────────────────────────────── */
+/* ?????????????????????????????????????????????????????????????
+   PANE COLLAPSE ? UPDATED: 40px tab strip stays visible
+   ????????????????????????????????????????????????????????????? */
 .pane-wrapper {
   position: relative;
   overflow: hidden;
@@ -1233,7 +1233,7 @@ textarea, input { font-family: inherit; }
   border-left: 1px solid var(--border);
 }
 
-/* When collapsed, the wrapper IS the 40px strip — center the tab button */
+/* When collapsed, the wrapper IS the 40px strip ? center the tab button */
 .pane-wrapper-collapsed {
   align-items: center;
   justify-content: center;
@@ -1263,7 +1263,7 @@ textarea, input { font-family: inherit; }
 .left-collapse  { right: -12px; }
 .right-collapse { left: -12px; }
 
-/* Collapsed tab-strip button — fills the whole 40px strip */
+/* Collapsed tab-strip button ? fills the whole 40px strip */
 .pane-tab-btn {
   position: static !important;
   transform: none !important;
@@ -1300,9 +1300,9 @@ textarea, input { font-family: inherit; }
   text-transform: uppercase;
 }
 
-/* ─────────────────────────────────────────────────────────────
+/* ?????????????????????????????????????????????????????????????
    SOURCE SELECTION UI
-   ───────────────────────────────────────────────────────────── */
+   ????????????????????????????????????????????????????????????? */
 
 /* Selection control bar */
 .source-select-bar {
@@ -1332,7 +1332,7 @@ textarea, input { font-family: inherit; }
 }
 .source-select-btn:hover { border-color: var(--accent); color: var(--accent); }
 
-/* Source list rows — clickable */
+/* Source list rows ? clickable */
 .source-item {
   cursor: pointer;
   border-radius: var(--radius-sm);
@@ -1349,7 +1349,7 @@ textarea, input { font-family: inherit; }
 }
 .source-item.selected .doc-name { color: var(--text-primary); }
 
-/* Deselected state — dimmed */
+/* Deselected state ? dimmed */
 .source-item.unselected { opacity: 0.55; }
 .source-item.unselected:hover { opacity: 0.85; }
 
@@ -1388,9 +1388,9 @@ textarea, input { font-family: inherit; }
   color: var(--warning);
 }
 
-/* ─────────────────────────────────────────────────────────────
+/* ?????????????????????????????????????????????????????????????
    CREATIVITY SLIDER
-   ───────────────────────────────────────────────────────────── */
+   ????????????????????????????????????????????????????????????? */
 .creativity-bar {
   display: flex;
   flex-direction: column;
@@ -1426,7 +1426,7 @@ textarea, input { font-family: inherit; }
   border-radius: 99px;
   outline: none;
   cursor: pointer;
-  /* gradient track: blue → purple → orange */
+  /* gradient track: blue ? purple ? orange */
   background: linear-gradient(
     to right,
     hsl(220, 80%, 55%) 0%,
@@ -1462,7 +1462,7 @@ textarea, input { font-family: inherit; }
 }
 
 /* =====================================================
-   SOURCE HIGHLIGHT — citation → source jump
+   SOURCE HIGHLIGHT ? citation ? source jump
    ===================================================== */
 .source-highlighted {
   border-left: 3px solid var(--accent) !important;
@@ -1568,7 +1568,7 @@ textarea, input { font-family: inherit; }
 }
 .note-title-input:focus { border-color: var(--accent); }
 /* =====================================================
-   PHASE 2 — P1 UX COMPLETENESS
+   PHASE 2 ? P1 UX COMPLETENESS
    ===================================================== */
 
 /* Editable notebook title (#10) */
@@ -1741,7 +1741,7 @@ textarea, input { font-family: inherit; }
   50% { opacity: 0.4; }
 }
 /* =====================================================
-   PHASE 3 — P2 POLISH & PRODUCTION
+   PHASE 3 ? P2 POLISH & PRODUCTION
    ===================================================== */
 
 /* Mono font for code blocks (#18) */
@@ -1802,7 +1802,7 @@ code, pre, .font-mono { font-family: var(--font-mono, "Roboto Mono", monospace);
   outline: none;
 }
 /* =====================================================
-   PHASE 4 — P3 GOOGLE OAUTH, DRIVE, COLLAB
+   PHASE 4 ? P3 GOOGLE OAUTH, DRIVE, COLLAB
    ===================================================== */
 
 /* Google SSO button (#24) */
@@ -1866,10 +1866,10 @@ code, pre, .font-mono { font-family: var(--font-mono, "Roboto Mono", monospace);
   animation: pulse 2s ease-in-out infinite;
 }
 
-/* ═══════════════════════════════════════════════════
-   PROTOCOL GLASS MORPHISM — CLASSIFIED COMMAND LAYER
+/* ???????????????????????????????????????????????????
+   PROTOCOL GLASS MORPHISM ? CLASSIFIED COMMAND LAYER
    v1.0 // SECURE CONNECTION: ESTABLISHED
-   ═══════════════════════════════════════════════════ */
+   ??????????????????????????????????????????????????? */
 
 /* Scanline texture overlay */
 html::before {
@@ -2199,7 +2199,7 @@ input::placeholder, textarea::placeholder {
 /* Summary text */
 .summary-text { font-family: var(--font-mono, monospace) !important; line-height: 1.8 !important; }
 
-/* ═══ TERMINAL UTILITY CLASSES ═══ */
+/* ??? TERMINAL UTILITY CLASSES ??? */
 .terminal-tag {
   font-family: var(--font-mono, monospace);
   font-size: 10px;
@@ -2240,3 +2240,77 @@ input::placeholder, textarea::placeholder {
   padding: 1px 6px;
   border-radius: 2px;
 }
+/* PROTOCOL GLASS MORPHISM - CLASSIFIED COMMAND LAYER */
+
+html::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background: repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,255,65,0.012) 2px,rgba(0,255,65,0.012) 3px);
+  pointer-events: none;
+  z-index: 9999;
+}
+.app-header {
+  background: rgba(10,10,10,0.94) !important;
+  backdrop-filter: blur(20px) saturate(1.4);
+  -webkit-backdrop-filter: blur(20px) saturate(1.4);
+  border-bottom: 1px solid rgba(0,255,65,0.14) !important;
+  box-shadow: 0 1px 0 rgba(0,255,65,0.06), 0 4px 32px rgba(0,0,0,0.85) !important;
+}
+.brand-name { font-family: var(--font-mono, "Roboto Mono", monospace) !important; font-weight: 700 !important; letter-spacing: 0.08em !important; color: #00FF41 !important; text-shadow: 0 0 14px rgba(0,255,65,0.45); }
+.brand-tag { background: transparent !important; -webkit-text-fill-color: initial !important; color: rgba(0,255,65,0.55) !important; border: 1px solid rgba(0,255,65,0.22) !important; font-family: var(--font-mono, monospace) !important; font-size: 10px !important; letter-spacing: 0.12em !important; text-transform: uppercase !important; }
+.header-tagline { font-family: var(--font-mono, monospace) !important; font-size: 10px !important; letter-spacing: 0.08em !important; color: rgba(0,255,65,0.32) !important; text-transform: uppercase !important; }
+.left-pane, .middle-pane, .right-pane { background: rgba(10,10,10,0.97) !important; }
+.left-pane  { border-right: 1px solid rgba(0,255,65,0.09) !important; }
+.right-pane { border-left:  1px solid rgba(0,255,65,0.09) !important; }
+.pane-header { background: rgba(12,12,12,0.98) !important; border-bottom: 1px solid rgba(0,255,65,0.11) !important; }
+.pane-title { font-family: var(--font-mono, monospace) !important; font-size: 11px !important; font-weight: 600 !important; letter-spacing: 0.18em !important; text-transform: uppercase !important; color: #00FF41 !important; text-shadow: 0 0 8px rgba(0,255,65,0.28); }
+.btn-primary, .send-btn, .add-source-btn, .notebook-create-btn { background: #00FF41 !important; color: #050505 !important; border: none !important; font-family: var(--font-mono, monospace) !important; font-weight: 700 !important; letter-spacing: 0.06em !important; text-transform: uppercase !important; font-size: 11px !important; box-shadow: 0 0 16px rgba(0,255,65,0.30), 0 2px 8px rgba(0,0,0,0.5) !important; }
+.btn-primary:hover, .send-btn:hover, .add-source-btn:hover, .notebook-create-btn:hover { background: #00CC34 !important; box-shadow: 0 0 28px rgba(0,255,65,0.50), 0 4px 16px rgba(0,0,0,0.6) !important; transform: translateY(-1px) !important; }
+.btn-ghost, .btn-secondary { background: transparent !important; border: 1px solid rgba(0,255,65,0.18) !important; color: rgba(0,255,65,0.60) !important; font-family: var(--font-mono, monospace) !important; font-size: 11px !important; letter-spacing: 0.06em !important; text-transform: uppercase !important; }
+.btn-ghost:hover, .btn-secondary:hover { background: rgba(0,255,65,0.05) !important; border-color: rgba(0,255,65,0.42) !important; color: #00FF41 !important; box-shadow: 0 0 10px rgba(0,255,65,0.12) !important; }
+input, textarea, .chat-input { background: rgba(12,12,12,0.92) !important; border: 1px solid rgba(0,255,65,0.11) !important; color: #E0FFE8 !important; font-family: var(--font-mono, monospace) !important; }
+input:focus, textarea:focus, .chat-input:focus { border-color: rgba(0,255,65,0.48) !important; box-shadow: 0 0 0 2px rgba(0,255,65,0.08), 0 0 16px rgba(0,255,65,0.10) !important; outline: none !important; }
+input::placeholder, textarea::placeholder { color: rgba(0,255,65,0.22) !important; font-family: var(--font-mono, monospace) !important; }
+.notebook-card, .source-item, .note-item, .modal-content, .settings-menu { background: rgba(18,18,18,0.88) !important; backdrop-filter: blur(12px) !important; -webkit-backdrop-filter: blur(12px) !important; border: 1px solid rgba(0,255,65,0.09) !important; box-shadow: 0 4px 32px rgba(0,0,0,0.85) !important; }
+.notebook-card:hover { border-color: rgba(0,255,65,0.28) !important; box-shadow: 0 0 20px rgba(0,255,65,0.10), 0 8px 40px rgba(0,0,0,0.88) !important; transform: translateY(-2px) !important; }
+.source-item.selected, .source-item[data-selected="true"] { border-left: 2px solid #00FF41 !important; background: rgba(0,255,65,0.04) !important; }
+.source-item:hover { background: rgba(0,255,65,0.03) !important; }
+.message-bubble.user .message-body { background: rgba(0,255,65,0.05) !important; border: 1px solid rgba(0,255,65,0.13) !important; }
+.message-bubble.assistant .message-body { background: rgba(18,18,18,0.88) !important; border: 1px solid rgba(0,255,65,0.07) !important; }
+.message-time { font-family: var(--font-mono, monospace) !important; font-size: 10px !important; color: rgba(0,255,65,0.28) !important; }
+.citation-badge { background: rgba(0,163,255,0.10) !important; border: 1px solid rgba(0,163,255,0.28) !important; color: #00A3FF !important; font-family: var(--font-mono, monospace) !important; font-size: 10px !important; }
+.citation-badge:hover { background: rgba(0,163,255,0.20) !important; box-shadow: 0 0 8px rgba(0,163,255,0.22) !important; }
+.source-status-ready    { background: #00FF41 !important; box-shadow: 0 0 6px rgba(0,255,65,0.55) !important; }
+.source-status-processing { background: #FFB000 !important; box-shadow: 0 0 6px rgba(255,176,0,0.45) !important; }
+.source-status-failed   { background: #FF003C !important; box-shadow: 0 0 6px rgba(255,0,60,0.45) !important; }
+.doc-count { font-family: var(--font-mono, monospace) !important; font-size: 10px !important; color: rgba(0,255,65,0.45) !important; border-color: rgba(0,255,65,0.12) !important; letter-spacing: 0.06em !important; }
+.tab-btn, .right-tab-btn { font-family: var(--font-mono, monospace) !important; font-size: 10px !important; letter-spacing: 0.12em !important; text-transform: uppercase !important; color: rgba(0,255,65,0.38) !important; }
+.tab-btn.active, .right-tab-btn.active { color: #00FF41 !important; border-bottom-color: #00FF41 !important; text-shadow: 0 0 8px rgba(0,255,65,0.35) !important; }
+.modal-overlay { background: rgba(0,0,0,0.88) !important; backdrop-filter: blur(6px) !important; }
+.modal-header { border-bottom: 1px solid rgba(0,255,65,0.11) !important; }
+.modal-title { font-family: var(--font-mono, monospace) !important; font-size: 12px !important; letter-spacing: 0.14em !important; text-transform: uppercase !important; color: #00FF41 !important; }
+.creativity-slider { accent-color: #00FF41 !important; }
+.auth-card { background: rgba(12,12,12,0.94) !important; border: 1px solid rgba(0,255,65,0.14) !important; backdrop-filter: blur(20px) !important; box-shadow: 0 0 40px rgba(0,255,65,0.06), 0 20px 60px rgba(0,0,0,0.92) !important; }
+.auth-title { font-family: var(--font-mono, monospace) !important; letter-spacing: 0.10em !important; color: #00FF41 !important; text-shadow: 0 0 12px rgba(0,255,65,0.38) !important; }
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: #0A0A0A; }
+::-webkit-scrollbar-thumb { background: rgba(0,255,65,0.18); border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(0,255,65,0.38); }
+::selection { background: rgba(0,255,65,0.18); color: #E0FFE8; }
+.google-sso-btn { background: rgba(18,18,18,0.90) !important; border: 1px solid rgba(0,255,65,0.14) !important; color: #E0FFE8 !important; font-family: var(--font-mono, monospace) !important; }
+.google-sso-btn:hover { border-color: rgba(0,255,65,0.38) !important; box-shadow: 0 0 16px rgba(0,255,65,0.10) !important; background: rgba(0,255,65,0.04) !important; }
+.presence-live-dot { background: #00FF41 !important; box-shadow: 0 0 6px rgba(0,255,65,0.65) !important; }
+.typing-indicator span { background: #00FF41 !important; box-shadow: 0 0 5px rgba(0,255,65,0.45) !important; }
+.upload-zone { border-color: rgba(0,255,65,0.16) !important; background: rgba(0,255,65,0.015) !important; }
+.upload-zone:hover { border-color: rgba(0,255,65,0.42) !important; background: rgba(0,255,65,0.04) !important; box-shadow: 0 0 20px rgba(0,255,65,0.08) !important; }
+.settings-theme-btn.active { border-color: rgba(0,255,65,0.38) !important; color: #00FF41 !important; background: rgba(0,255,65,0.07) !important; }
+.share-url-input { background: rgba(12,12,12,0.90) !important; border-color: rgba(0,255,65,0.11) !important; color: rgba(0,255,65,0.50) !important; }
+.notebook-breadcrumb { font-family: var(--font-mono, monospace) !important; font-size: 11px !important; color: rgba(0,255,65,0.45) !important; border-left-color: rgba(0,255,65,0.14) !important; }
+.header-avatar { background: linear-gradient(135deg, rgba(0,255,65,0.8), rgba(0,163,255,0.6)) !important; color: #050505 !important; font-family: var(--font-mono, monospace) !important; font-weight: 700 !important; }
+.study-section-heading { color: #00FF41 !important; }
+.summary-text { font-family: var(--font-mono, monospace) !important; line-height: 1.8 !important; }
+.terminal-tag { font-family: var(--font-mono, monospace); font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(0,255,65,0.50); background: rgba(0,255,65,0.06); border: 1px solid rgba(0,255,65,0.14); padding: 2px 8px; border-radius: 2px; }
+.system-status { display: inline-flex; align-items: center; gap: 6px; font-family: var(--font-mono, monospace); font-size: 10px; letter-spacing: 0.10em; text-transform: uppercase; color: #00FF41; }
+.system-status::before { content: ""; width: 6px; height: 6px; background: #00FF41; border-radius: 50%; box-shadow: 0 0 8px rgba(0,255,65,0.75); animation: pulse 2s ease-in-out infinite; }
+.classified-label { font-family: var(--font-mono, monospace); font-size: 9px; letter-spacing: 0.20em; text-transform: uppercase; color: rgba(255,0,60,0.68); border: 1px solid rgba(255,0,60,0.22); padding: 1px 6px; border-radius: 2px; }
