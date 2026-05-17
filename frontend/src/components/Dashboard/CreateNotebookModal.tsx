@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 import { useState } from "react";
 import { NotebookService } from "@/lib/api";
 import { Notebook } from "@/types";
@@ -15,6 +15,31 @@ export default function CreateNotebookModal({ onCreated, onClose }: Props) {
   const [emoji, setEmoji] = useState("📓");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const modalRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+      if (e.key === "Tab" && modalRef.current) {
+        const focusable = modalRef.current.querySelectorAll<HTMLElement>(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        );
+        if (focusable.length === 0) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last?.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first?.focus();
+        }
+      }
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [onClose]);
 
   const handleCreate = async () => {
     if (!title.trim()) { setError("Please enter a notebook title."); return; }
@@ -31,10 +56,17 @@ export default function CreateNotebookModal({ onCreated, onClose }: Props) {
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+      <div 
+        className="modal-card" 
+        onClick={(e) => e.stopPropagation()}
+        ref={modalRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="create-notebook-title"
+      >
         <div className="modal-header">
-          <h2 className="modal-title">New Notebook</h2>
-          <button className="modal-close" onClick={onClose}>✕</button>
+          <h2 className="modal-title" id="create-notebook-title">New Notebook</h2>
+          <button className="modal-close" onClick={onClose} aria-label="Close modal">✕</button>
         </div>
 
         <div className="modal-body">

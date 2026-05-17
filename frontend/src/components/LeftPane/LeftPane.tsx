@@ -123,6 +123,7 @@ export default function LeftPane({ notebookId }: Props) {
                 className="doc-delete"
                 onClick={(e) => handleDelete(doc.id, doc.filename, e)}
                 title="Remove source"
+                aria-label={`Remove source ${doc.filename}`}
               >
                 ✕
               </button>

@@ -56,7 +56,7 @@ export default function SettingsMenu({ onClose, onSignOut }: Props) {
       <div className="settings-menu settings-menu-wide" ref={ref} id="help-overlay">
         <div className="settings-header-row">
           <strong>notebook.blue Help</strong>
-          <button className="modal-close" onClick={() => setShowHelp(false)}>✕</button>
+          <button className="modal-close" onClick={() => setShowHelp(false)} aria-label="Close help">✕</button>
         </div>
         <div className="help-section">
           <p className="help-heading">Keyboard Shortcuts</p>
@@ -84,7 +84,7 @@ export default function SettingsMenu({ onClose, onSignOut }: Props) {
       <div className="settings-menu settings-menu-wide" ref={ref} id="feedback-modal">
         <div className="settings-header-row">
           <strong>Send Feedback</strong>
-          <button className="modal-close" onClick={() => setShowFeedback(false)}>✕</button>
+          <button className="modal-close" onClick={() => setShowFeedback(false)} aria-label="Close feedback modal">✕</button>
         </div>
         {feedbackSent ? (
           <p style={{ fontSize: 13, color: "var(--success)", padding: "12px 0" }}>✅ Thank you for your feedback!</p>
