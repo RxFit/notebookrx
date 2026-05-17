@@ -41,6 +41,31 @@ export default function AddSourcesModal({ notebookId, onClose, onAdded }: Props)
   const [selected,     setSelected]     = useState<Set<string>>(new Set());
 
   const token = authStorage.getToken();
+  const modalRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+      if (e.key === "Tab" && modalRef.current) {
+        const focusable = modalRef.current.querySelectorAll<HTMLElement>(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        );
+        if (focusable.length === 0) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last?.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first?.focus();
+        }
+      }
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [onClose]);
 
   const loadDriveFiles = useCallback(async () => {
     setDriveLoading(true);
@@ -182,10 +207,17 @@ export default function AddSourcesModal({ notebookId, onClose, onAdded }: Props)
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-card modal-card-wide" onClick={(e) => e.stopPropagation()}>
+      <div 
+        className="modal-card modal-card-wide" 
+        onClick={(e) => e.stopPropagation()}
+        ref={modalRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="add-sources-title"
+      >
         <div className="modal-header">
-          <span className="modal-title">Add Sources</span>
-          <button className="modal-close" onClick={onClose}>✕</button>
+          <span className="modal-title" id="add-sources-title">Add Sources</span>
+          <button className="modal-close" onClick={onClose} aria-label="Close modal">✕</button>
         </div>
 
         {/* Tab bar */}

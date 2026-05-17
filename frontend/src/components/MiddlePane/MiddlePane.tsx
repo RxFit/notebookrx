@@ -221,7 +221,7 @@ export default function MiddlePane({ notebookId, systemPrompt }: Props) {
     <main className="middle-pane">
       <div className="pane-header">
         <h2 className="pane-title"><span className="pane-icon">{"\uD83D\uDCAC"}</span> Chat</h2>
-        <button className="btn-ghost" onClick={handleClear} id="clear-chat-btn">Clear</button>
+        <button className="btn-ghost" onClick={handleClear} id="clear-chat-btn" aria-label="Clear chat history">Clear</button>
       </div>
 
       <div className="messages-container">
@@ -324,6 +324,7 @@ export default function MiddlePane({ notebookId, systemPrompt }: Props) {
             className="send-btn"
             onClick={() => sendMessage()}
             disabled={noSources || isLoading || !input.trim()}
+            aria-label="Send message"
           >
             {isLoading ? <div className="spinner" /> : "\u27A4"}
           </button>
