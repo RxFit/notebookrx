@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useAppStore } from "@/store/useAppStore";
 import { ApiService } from "@/lib/api";
@@ -40,8 +40,9 @@ export default function LeftPane({ notebookId }: Props) {
 
   useEffect(() => { loadDocs(); }, [loadDocs]);
 
-  const handleDelete = async (id: string, e: React.MouseEvent) => {
-    e.stopPropagation(); // don't toggle selection when deleting
+  const handleDelete = async (id: string, filename: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!window.confirm(`Remove "${filename}"? It will no longer be available in chat.`)) return;
     try {
       await ApiService.deleteDocument(id);
       await loadDocs();
@@ -113,17 +114,14 @@ export default function LeftPane({ notebookId }: Props) {
               onClick={() => toggleDocument(doc.id)}
               title={isSelected ? `Deselect "${doc.filename}"` : `Select "${doc.filename}"`}
             >
-              {/* Selection indicator pill */}
               <span className={`source-check ${isSelected ? "source-check-on" : ""}`}>
                 {isSelected ? "✓" : ""}
               </span>
-
               <span className="doc-icon">{getIcon(doc.filename)}</span>
-              <span className="doc-name">{doc.filename}</span>
-
+              <span className="doc-name" title={doc.filename}>{doc.filename}</span>
               <button
                 className="doc-delete"
-                onClick={(e) => handleDelete(doc.id, e)}
+                onClick={(e) => handleDelete(doc.id, doc.filename, e)}
                 title="Remove source"
               >
                 ✕
@@ -133,7 +131,7 @@ export default function LeftPane({ notebookId }: Props) {
         })}
       </ul>
 
-      {/* ── Usage hint when some are deselected ── */}
+      {/* ── Scope hint at bottom (only shown when mixed selection) ── */}
       {documents.length > 0 && !noneSelected && !allSelected && (
         <p className="source-scope-hint">
           Chat &amp; Studio will use only the {selectedCount} selected source{selectedCount !== 1 ? "s" : ""}.
