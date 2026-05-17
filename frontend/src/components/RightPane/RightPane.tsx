@@ -196,8 +196,8 @@ export default function RightPane({ notebookId }: Props) {
   const { rightTab, setRightTab } = useAppStore();
   const tabs = [
     { key: "notes"     as const, label: "📝 Notes" },
-    { key: "summarize" as const, label: "📋 Summary" },
-    { key: "guide"     as const, label: "🎓 Study Guide" },
+    { key: "summary"   as const, label: "📋 Summary" },
+    { key: "study"     as const, label: "🎓 Study Guide" },
     { key: "audio"     as const, label: "🎤 Audio" },
     { key: "diagram"   as const, label: "📊 Visual Map" },
     { key: "image"     as const, label: "🎨 Image" },
@@ -216,8 +216,8 @@ export default function RightPane({ notebookId }: Props) {
         ))}
       </div>
       {rightTab === "notes"     && <NotesTab notebookId={notebookId} />}
-      {rightTab === "summarize" && <SummarizeTab />}
-      {rightTab === "guide"     && <StudyGuideTab />}
+      {rightTab === "summary"   && <SummarizeTab />}
+      {rightTab === "study"     && <StudyGuideTab />}
       {rightTab === "audio"     && <AudioTab />}
       {rightTab === "diagram"   && <DiagramTab />}
       {rightTab === "image"     && <ImageTab />}
