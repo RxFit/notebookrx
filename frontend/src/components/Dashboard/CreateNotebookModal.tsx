@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { NotebookService } from "@/lib/api";
 import { Notebook } from "@/types";
 

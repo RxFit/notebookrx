@@ -45,7 +45,7 @@ export default function DashboardPage() {
   const handleTemplate = async (tpl: typeof TEMPLATES[0]) => {
     setCreatingTemplate(true);
     try {
-      const nb = await NotebookService.create({ title: tpl.title, emoji: tpl.emoji });
+      const nb = await NotebookService.create(tpl.title, tpl.emoji);
       setNotebooks((prev) => [nb, ...prev]);
     } catch { /* ignore */ } finally {
       setCreatingTemplate(false);
@@ -54,7 +54,7 @@ export default function DashboardPage() {
 
   const filtered = notebooks
     .filter((nb) => {
-      if (filter === "mine" && user) return nb.owner_id === user.id;
+      if (filter === "mine" && user) return nb.owner_id === user.user_id;
       return true;
     })
     .filter((nb) => nb.title.toLowerCase().includes(search.toLowerCase()))
