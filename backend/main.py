@@ -1,4 +1,4 @@
-﻿from fastapi import FastAPI
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from api import ingest, chat, media, notebooks, notes, google_auth, ws
@@ -15,18 +15,19 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="NotebookLM Clone API", version="1.0.0", lifespan=lifespan)
 
-# Build allowed origins — include Railway + Vercel + local dev
+# Explicit allowed origins — do NOT use wildcard in production
 ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://localhost:3003",
     "https://notebookrx-api-production.up.railway.app",
     "https://notebook.blue",
+    "https://www.notebook.blue",
 ]
-# Allow any *.vercel.app subdomain pattern via regex
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=False,
+    allow_origins=ALLOWED_ORIGINS,
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
     expose_headers=["X-RateLimit-Limit", "X-RateLimit-Remaining", "X-RateLimit-Window", "Retry-After"],
