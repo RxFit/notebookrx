@@ -1,0 +1,39 @@
+name: Assign Jules to STATE.md Task
+# VibecOPS — Authorized account: daniel.trejo.eclectic@gmail.com (100 tasks/day)
+
+on:
+  push:
+    branches: [main]
+    paths: ['STATE.md']
+  workflow_dispatch:
+
+jobs:
+  assign-jules:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Parse STATE.md
+        id: parse
+        run: |
+          TASK=$(grep -m1 '- \[ \]' STATE.md | sed 's/- \[ \] //' | head -c 200 2>/dev/null || echo '')
+          FEATURE=$(grep -m1 '^# FEATURE:' STATE.md | sed 's/# FEATURE: //' 2>/dev/null || echo 'Task')
+          [ -z "$TASK" ] && echo "has_task=false" >> $GITHUB_OUTPUT && exit 0
+          echo "has_task=true" >> $GITHUB_OUTPUT
+          echo "task=$TASK" >> $GITHUB_OUTPUT
+          echo "feature=$FEATURE" >> $GITHUB_OUTPUT
+      - name: Create Issue
+        if: steps.parse.outputs.has_task == 'true'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const issue = await github.rest.issues.create({
+              ...context.repo,
+              title: `[Jules] ${{ steps.parse.outputs.task }}`.substring(0, 100),
+              body: `## VibecOPS Jules Task\n\n**Feature:** ${{ steps.parse.outputs.feature }}\n**Primary Account:** daniel.trejo.eclectic@gmail.com\n\n### Task\n${{ steps.parse.outputs.task }}`,
+              labels: ['jules', 'vibecops', 'auto-merge'],
+            });
+            core.info(`Created #${issue.data.number}: ${issue.data.html_url}`);
