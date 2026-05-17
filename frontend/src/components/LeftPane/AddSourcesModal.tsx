@@ -7,7 +7,7 @@ type SourceType = "upload" | "url" | "youtube" | "text" | "drive";
 interface Props {
   notebookId: string;
   onClose: () => void;
-  onSourceAdded: () => void;
+  onAdded: () => void;          // called after any successful source ingestion
 }
 
 interface Message { text: string; type: "success" | "error" | "info" }
@@ -24,7 +24,7 @@ function mimeIcon(mime: string) {
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
-export default function AddSourcesModal({ notebookId, onClose, onSourceAdded }: Props) {
+export default function AddSourcesModal({ notebookId, onClose, onAdded }: Props) {
   const [activeTab, setActiveTab] = useState<SourceType>("upload");
   const [message,   setMessage]   = useState<Message | null>(null);
   const [loading,   setLoading]   = useState(false);
@@ -34,9 +34,9 @@ export default function AddSourcesModal({ notebookId, onClose, onSourceAdded }: 
   const [dragOver,   setDragOver]  = useState(false);
 
   // URL/YouTube/Text state
-  const [url,     setUrl]     = useState("");
-  const [text,    setText]    = useState("");
-  const [title,   setTitle]   = useState("");
+  const [url,   setUrl]   = useState("");
+  const [text,  setText]  = useState("");
+  const [title, setTitle] = useState("");
 
   // Drive state
   const [driveFiles,   setDriveFiles]   = useState<DriveFile[]>([]);
@@ -99,7 +99,7 @@ export default function AddSourcesModal({ notebookId, onClose, onSourceAdded }: 
     setSelected(new Set());
     if (success > 0) {
       setMessage({ text: `${success} file${success > 1 ? "s" : ""} added — processing…`, type: "success" });
-      onSourceAdded();
+      onAdded();
     } else {
       setMessage({ text: "Failed to add Drive files.", type: "error" });
     }
@@ -121,7 +121,7 @@ export default function AddSourcesModal({ notebookId, onClose, onSourceAdded }: 
       });
       if (!res.ok) throw new Error(await res.text());
       setMessage({ text: "File added — processing…", type: "success" });
-      onSourceAdded();
+      onAdded();
     } catch (e: unknown) {
       setMessage({ text: (e as Error).message || "Upload failed.", type: "error" });
     } finally {
@@ -146,7 +146,7 @@ export default function AddSourcesModal({ notebookId, onClose, onSourceAdded }: 
       if (!res.ok) throw new Error(await res.text());
       setUrl("");
       setMessage({ text: "Website added — processing…", type: "success" });
-      onSourceAdded();
+      onAdded();
     } catch (e: unknown) {
       setMessage({ text: (e as Error).message || "URL ingestion failed.", type: "error" });
     } finally {
@@ -171,7 +171,7 @@ export default function AddSourcesModal({ notebookId, onClose, onSourceAdded }: 
       if (!res.ok) throw new Error(await res.text());
       setUrl("");
       setMessage({ text: "YouTube transcript added — processing…", type: "success" });
-      onSourceAdded();
+      onAdded();
     } catch (e: unknown) {
       setMessage({ text: (e as Error).message || "YouTube ingestion failed.", type: "error" });
     } finally {
@@ -198,7 +198,7 @@ export default function AddSourcesModal({ notebookId, onClose, onSourceAdded }: 
       setText("");
       setTitle("");
       setMessage({ text: "Text added — processing…", type: "success" });
-      onSourceAdded();
+      onAdded();
     } catch (e: unknown) {
       setMessage({ text: (e as Error).message || "Text ingestion failed.", type: "error" });
     } finally {
