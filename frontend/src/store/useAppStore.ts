@@ -24,6 +24,7 @@ interface AppState {
   messages: ChatMessage[];
   isLoading: boolean;
   addMessage: (msg: ChatMessage) => void;
+  setMessages: (msgs: ChatMessage[]) => void;  // G1: bulk-set for history loading
   setLoading: (v: boolean) => void;
   clearChat: () => void;
 
@@ -77,6 +78,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   messages: [],
   isLoading: false,
   addMessage: (msg) => set((s) => ({ messages: [...s.messages, msg] })),
+  setMessages: (msgs) => set({ messages: msgs }),  // G1: bulk-set for history loading
   setLoading: (v) => set({ isLoading: v }),
   clearChat: () => set({ messages: [] }),
 
