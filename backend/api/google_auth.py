@@ -37,6 +37,19 @@ def _google_enabled() -> bool:
                 getattr(settings, "GOOGLE_CLIENT_SECRET", None))
 
 
+def _build_redirect_uri(request: Request) -> str:
+    """
+    Build the callback URI, forcing https:// in production.
+    Railway terminates TLS at the proxy level, so request.base_url
+    may arrive as http:// even though the public URL is https://.
+    """
+    base = str(request.base_url).rstrip("/")
+    # Force https for any Railway or custom domain (not localhost)
+    if not base.startswith("http://localhost") and not base.startswith("http://127."):
+        base = base.replace("http://", "https://", 1)
+    return base + "/auth/google/callback"
+
+
 @router.get("/google")
 async def google_login(request: Request):
     """Redirect user to Google OAuth consent screen."""
@@ -46,7 +59,7 @@ async def google_login(request: Request):
             detail="Google OAuth not configured — set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET.",
         )
 
-    redirect_uri = str(request.base_url).rstrip("/") + "/auth/google/callback"
+    redirect_uri = _build_redirect_uri(request)
     params = {
         "client_id":     settings.GOOGLE_CLIENT_ID,
         "redirect_uri":  redirect_uri,
@@ -70,7 +83,7 @@ async def google_callback(
     if error or not code:
         raise HTTPException(status_code=400, detail=f"Google OAuth error: {error or 'missing code'}")
 
-    redirect_uri = str(request.base_url).rstrip("/") + "/auth/google/callback"
+    redirect_uri = _build_redirect_uri(request)
     frontend_url = getattr(settings, "FRONTEND_URL", "https://notebook.blue")
 
     # Exchange code for tokens
