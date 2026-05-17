@@ -9,6 +9,9 @@ asyncpg>=0.30
 pgvector>=0.3
 alembic>=1.13
 google-genai
+google-api-python-client>=2.120
+google-auth-httplib2>=0.2
+google-auth-oauthlib>=1.2
 redis>=5.2
 python-dotenv>=1.0
 pypdf>=5.0
