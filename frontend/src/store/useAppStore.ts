@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { Document, ChatMessage, Note } from "@/types";
 
 type Theme = "light" | "dark" | "system";
+type MobileTab = "sources" | "chat" | "studio";
 
 interface AppState {
   // Active notebook context
@@ -44,6 +45,10 @@ interface AppState {
   // Theme
   theme: Theme;
   setTheme: (t: Theme) => void;
+
+  // Mobile tab navigation
+  mobileTab: MobileTab;
+  setMobileTab: (tab: MobileTab) => void;
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
@@ -67,7 +72,6 @@ export const useAppStore = create<AppState>((set, get) => ({
   highlightedDocumentId: null,
   setHighlightedDocument: (id) => {
     set({ highlightedDocumentId: id });
-    // Auto-clear highlight after 3 seconds
     if (id !== null) {
       setTimeout(() => set({ highlightedDocumentId: null }), 3000);
     }
@@ -80,7 +84,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   setLoading: (v) => set({ isLoading: v }),
   clearChat: () => set({ messages: [] }),
 
-  // Tabs - Notes is the first / default tab
+  // Tabs
   rightTab: "notes",
   setRightTab: (tab) => set({ rightTab: tab }),
 
@@ -106,4 +110,8 @@ export const useAppStore = create<AppState>((set, get) => ({
       localStorage.setItem("notebookrx_theme", t);
     }
   },
+
+  // Mobile tab — defaults to chat (primary mobile action)
+  mobileTab: "chat",
+  setMobileTab: (tab) => set({ mobileTab: tab }),
 }));

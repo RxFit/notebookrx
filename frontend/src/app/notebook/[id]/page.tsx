@@ -19,7 +19,11 @@ export default function NotebookWorkspace({ params }: { params: Promise<{ id: st
   const { id: notebookId } = use(params);
   const router = useRouter();
   const { user, isLoading, logout } = useAuth();
-  const { setActiveNotebookId, leftCollapsed, rightCollapsed, toggleLeftPane, toggleRightPane, setTheme } = useAppStore();
+  const {
+    setActiveNotebookId, leftCollapsed, rightCollapsed,
+    toggleLeftPane, toggleRightPane, setTheme,
+    mobileTab, setMobileTab,
+  } = useAppStore();
 
   // Real-time collaboration (#26)
   const { users: collabUsers, connected: collabConnected, sendTyping } = useCollabPresence(notebookId);
@@ -95,12 +99,12 @@ export default function NotebookWorkspace({ params }: { params: Promise<{ id: st
     <div className="app-shell">
       <header className="app-header">
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <button className="header-icon-btn" onClick={() => router.push("/")} title="Back to notebooks">&#x2190;</button>
-          <a href="/" className="header-brand" style={{ textDecoration: "none" }}>
-            <span className="brand-icon">&#x1F9E0;</span>
+          <button className="header-icon-btn" onClick={() => router.push("/")} title="Back to notebooks">←</button>
+          <a href="/" className="header-brand desktop-only" style={{ textDecoration: "none" }}>
+            <span className="brand-icon">🧠</span>
             <span className="brand-name">NotebookRx</span>
           </a>
-          <span className="notebook-breadcrumb-sep">/</span>
+          <span className="notebook-breadcrumb-sep desktop-only">/</span>
           {/* Editable notebook title (#10) */}
           {editingTitle ? (
             <input
@@ -124,8 +128,8 @@ export default function NotebookWorkspace({ params }: { params: Promise<{ id: st
           )}
         </div>
 
-        {/* Search bar (#11) */}
-        <div className="header-search">
+        {/* Search bar (#11) — hidden on mobile */}
+        <div className="header-search desktop-only">
           <SearchBar notebookId={notebookId} />
         </div>
 
@@ -135,7 +139,7 @@ export default function NotebookWorkspace({ params }: { params: Promise<{ id: st
           {/* Share button (#21) */}
           <button
             id="share-btn"
-            className="header-icon-btn"
+            className="header-icon-btn desktop-only"
             onClick={() => setShareOpen(true)}
             title="Share notebook"
           >
@@ -144,7 +148,7 @@ export default function NotebookWorkspace({ params }: { params: Promise<{ id: st
           {/* Customize button (#12) */}
           <button
             id="customize-btn"
-            className="header-icon-btn"
+            className="header-icon-btn desktop-only"
             onClick={() => setCustomizeOpen(true)}
             title="Customize notebook system prompt"
           >
@@ -152,7 +156,7 @@ export default function NotebookWorkspace({ params }: { params: Promise<{ id: st
           </button>
           <div style={{ position: "relative" }}>
             <button id="settings-btn" className="header-icon-btn" onClick={() => setSettingsOpen(!settingsOpen)} title="Settings">
-              &#x2699;&#xFE0F;
+              ⚙️
             </button>
             {settingsOpen && <SettingsMenu onClose={() => setSettingsOpen(false)} onSignOut={logout} />}
           </div>
@@ -174,7 +178,8 @@ export default function NotebookWorkspace({ params }: { params: Promise<{ id: st
         />
       )}
 
-      <div className="three-pane-layout" style={{ gridTemplateColumns: gridCols }}>
+      {/* ── Desktop: 3-pane grid ── */}
+      <div className="three-pane-layout desktop-panes" style={{ gridTemplateColumns: gridCols }}>
         <div className={`pane-wrapper ${leftCollapsed ? "pane-wrapper-collapsed" : ""}`}>
           {!leftCollapsed && <LeftPane notebookId={notebookId} />}
           <button
@@ -185,10 +190,10 @@ export default function NotebookWorkspace({ params }: { params: Promise<{ id: st
           >
             {leftCollapsed ? (
               <span className="pane-tab-inner">
-                <span className="pane-tab-chevron">&#x276F;</span>
+                <span className="pane-tab-chevron">❯</span>
                 <span className="pane-tab-label">Sources</span>
               </span>
-            ) : "&#x276E;"}
+            ) : "❮"}
           </button>
         </div>
 
@@ -204,13 +209,54 @@ export default function NotebookWorkspace({ params }: { params: Promise<{ id: st
           >
             {rightCollapsed ? (
               <span className="pane-tab-inner">
-                <span className="pane-tab-chevron">&#x276E;</span>
+                <span className="pane-tab-chevron">❮</span>
                 <span className="pane-tab-label">Studio</span>
               </span>
-            ) : "&#x276F;"}
+            ) : "❯"}
           </button>
         </div>
       </div>
+
+      {/* ── Mobile: single pane + tab bar ── */}
+      <div className="mobile-pane-container">
+        <div className={`mobile-pane ${mobileTab === "sources" ? "mobile-pane-active" : ""}`}>
+          <LeftPane notebookId={notebookId} />
+        </div>
+        <div className={`mobile-pane ${mobileTab === "chat" ? "mobile-pane-active" : ""}`}>
+          <MiddlePane notebookId={notebookId} systemPrompt={systemPrompt} />
+        </div>
+        <div className={`mobile-pane ${mobileTab === "studio" ? "mobile-pane-active" : ""}`}>
+          <RightPane notebookId={notebookId} />
+        </div>
+      </div>
+
+      {/* ── Mobile bottom tab bar ── */}
+      <nav className="mobile-tab-bar" id="mobile-nav">
+        <button
+          className={`mobile-tab-btn ${mobileTab === "sources" ? "mobile-tab-active" : ""}`}
+          onClick={() => setMobileTab("sources")}
+          id="mobile-tab-sources"
+        >
+          <span className="mobile-tab-icon">📄</span>
+          <span className="mobile-tab-label">Sources</span>
+        </button>
+        <button
+          className={`mobile-tab-btn ${mobileTab === "chat" ? "mobile-tab-active" : ""}`}
+          onClick={() => setMobileTab("chat")}
+          id="mobile-tab-chat"
+        >
+          <span className="mobile-tab-icon">💬</span>
+          <span className="mobile-tab-label">Chat</span>
+        </button>
+        <button
+          className={`mobile-tab-btn ${mobileTab === "studio" ? "mobile-tab-active" : ""}`}
+          onClick={() => setMobileTab("studio")}
+          id="mobile-tab-studio"
+        >
+          <span className="mobile-tab-icon">🎨</span>
+          <span className="mobile-tab-label">Studio</span>
+        </button>
+      </nav>
     </div>
   );
 }
