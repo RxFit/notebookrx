@@ -6,7 +6,7 @@ export interface IngestResponse { document_id: string; filename: string; chunks:
 export interface MediaJob { status: string; progress: number; url: string | null; error: string | null; script?: Array<{ speaker: string; dialogue: string }>; refined_prompt?: string; image_b64?: string; }
 export interface AuthUser { user_id: string; email: string; display_name: string; output_language?: string; }
 export interface TokenResponse { access_token: string; token_type: string; user_id: string; email: string; display_name: string; }
-export interface Notebook { id: string; title: string; emoji: string; source_count: number; system_prompt?: string; created_at: string; updated_at: string; }
+export interface Notebook { id: string; owner_id?: string; title: string; emoji: string; source_count: number; system_prompt?: string; created_at: string; updated_at: string; }
 export interface Note { id: string; notebook_id: string; title: string; content: string; created_at: string; updated_at: string; }
 
 // P1 #11 — search results

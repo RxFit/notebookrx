@@ -1,11 +1,19 @@
-"use client";
+﻿"use client";
 import { useState, useRef, useEffect } from "react";
 import { useAppStore } from "@/store/useAppStore";
 import { ApiService } from "@/lib/api";
 import { ChatMessage, Citation } from "@/types";
 import { v4 as uuidv4 } from "uuid";
+import ReactMarkdown from "react-markdown";
 
 interface Props { notebookId: string; systemPrompt?: string; }
+
+const STARTER_PROMPTS = [
+  "Summarize the key points from my sources",
+  "What are the main arguments or conclusions?",
+  "List the most important facts and figures",
+  "What questions does this material raise?",
+];
 
 function CitationBadge({ citation, index }: { citation: Citation; index: number }) {
   const [open, setOpen] = useState(false);
@@ -13,9 +21,7 @@ function CitationBadge({ citation, index }: { citation: Citation; index: number 
 
   const handleClick = () => {
     setOpen(!open);
-    // Jump to source in left pane
     if (citation.document_id) {
-      // Auto-expand left pane if collapsed (desktop)
       if (leftCollapsed) toggleLeftPane();
       // Switch to sources tab on mobile
       setMobileTab("sources");
@@ -38,7 +44,7 @@ function CitationBadge({ citation, index }: { citation: Citation; index: number 
           <p className="citation-excerpt">&ldquo;{citation.excerpt}&rdquo;</p>
           <p className="citation-id">Chunk: {citation.chunk_id.slice(0, 8)}&hellip;</p>
           {citation.document_id && (
-            <p className="citation-source-hint">↑ Source highlighted in Sources panel</p>
+            <p className="citation-source-hint">&uarr; Source highlighted in left pane</p>
           )}
         </div>
       )}
@@ -46,18 +52,65 @@ function CitationBadge({ citation, index }: { citation: Citation; index: number 
   );
 }
 
-function MessageBubble({ msg }: { msg: ChatMessage }) {
+function AssistantAvatar() {
+  return (
+    <div className="message-avatar avatar-assistant" aria-hidden="true">
+      <span className="avatar-nb">nb</span>
+    </div>
+  );
+}
+
+function UserAvatar({ initial }: { initial: string }) {
+  return (
+    <div className="message-avatar avatar-user" aria-hidden="true">
+      {initial}
+    </div>
+  );
+}
+
+function MessageBubble({ msg, onCopy, onRegenerate, userInitial }: {
+  msg: ChatMessage;
+  onCopy: (content: string) => void;
+  onRegenerate: () => void;
+  userInitial: string;
+}) {
   return (
     <div className={`message-bubble ${msg.role}`}>
-      <div className="message-avatar">{msg.role === "user" ? "🧑" : "🤖"}</div>
+      {msg.role === "user" ? <UserAvatar initial={userInitial} /> : <AssistantAvatar />}
       <div className="message-body">
-        <p className="message-text">{msg.content}</p>
+        {msg.role === "assistant" ? (
+          <div className="message-text message-markdown">
+            <ReactMarkdown>{msg.content}</ReactMarkdown>
+          </div>
+        ) : (
+          <p className="message-text">{msg.content}</p>
+        )}
         {msg.citations && msg.citations.length > 0 && (
           <div className="citations-row">
             {msg.citations.map((c, i) => <CitationBadge key={c.chunk_id} citation={c} index={i} />)}
           </div>
         )}
-        <span className="message-time">{new Date(msg.timestamp).toLocaleTimeString()}</span>
+        <div className="message-meta">
+          <span className="message-time">{new Date(msg.timestamp).toLocaleTimeString()}</span>
+          {msg.role === "assistant" && (
+            <div className="message-actions">
+              <button
+                className="msg-action-btn"
+                onClick={() => onCopy(msg.content)}
+                title="Copy response"
+              >
+                <span className="material-symbols-rounded">content_copy</span>
+              </button>
+              <button
+                className="msg-action-btn"
+                onClick={onRegenerate}
+                title="Regenerate response"
+              >
+                <span className="material-symbols-rounded">refresh</span>
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -73,15 +126,43 @@ function creativityLabel(val: number): string {
 }
 
 export default function MiddlePane({ notebookId, systemPrompt }: Props) {
-  const { messages, isLoading, selectedDocumentIds, documents, addMessage, setLoading, clearChat, setMobileTab } = useAppStore();
+  const { messages, isLoading, selectedDocumentIds, documents, addMessage, setMessages, setLoading, clearChat } = useAppStore();
   const [input, setInput] = useState("");
   const [creativity, setCreativity] = useState(0.0);
+  const [historyLoaded, setHistoryLoaded] = useState(false);
+  const [showSliderTip, setShowSliderTip] = useState(false);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+
+  // Try to get user's initial from auth context for avatar
+  const userInitial = (typeof window !== "undefined"
+    ? (localStorage.getItem("notebook_blue_display_name") ||
+       localStorage.getItem("notebook_blue_email") || "U")
+    : "U").charAt(0).toUpperCase();
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
 
-  const sendMessage = async () => {
-    const query = input.trim();
+  // G1: Load persisted chat history when notebook opens
+  useEffect(() => {
+    if (!notebookId || historyLoaded) return;
+    let cancelled = false;
+    ApiService.getChatHistory(notebookId)
+      .then((history) => {
+        if (!cancelled && history.length > 0) {
+          setMessages(history);
+        }
+      })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setHistoryLoaded(true); });
+    return () => { cancelled = true; };
+  }, [notebookId, historyLoaded, setMessages]);
+
+  useEffect(() => {
+    setHistoryLoaded(false);
+  }, [notebookId]);
+
+  const sendMessage = async (overrideQuery?: string) => {
+    const query = (overrideQuery ?? input).trim();
     if (!query || isLoading) return;
 
     const docIds = selectedDocumentIds.size > 0
@@ -94,7 +175,7 @@ export default function MiddlePane({ notebookId, systemPrompt }: Props) {
     setLoading(true);
 
     try {
-      const res = await ApiService.chat(query, docIds, creativity);
+      const res = await ApiService.chat(query, docIds, creativity, notebookId);
       addMessage({ id: uuidv4(), role: "assistant", content: res.answer, citations: res.citations, timestamp: new Date() });
     } catch (err: unknown) {
       const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
@@ -102,6 +183,30 @@ export default function MiddlePane({ notebookId, systemPrompt }: Props) {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleClear = async () => {
+    if (!window.confirm("Clear this conversation? This cannot be undone.")) return;
+    clearChat();
+    if (notebookId) {
+      try { await ApiService.clearChatHistory(notebookId); } catch { /* silently fail */ }
+    }
+  };
+
+  // Regenerate: re-send the last user message
+  const handleRegenerate = () => {
+    const lastUser = [...messages].reverse().find((m) => m.role === "user");
+    if (lastUser) sendMessage(lastUser.content);
+  };
+
+  const handleCopy = async (content: string, msgId?: string) => {
+    try {
+      await navigator.clipboard.writeText(content);
+      if (msgId) {
+        setCopiedId(msgId);
+        setTimeout(() => setCopiedId(null), 2000);
+      }
+    } catch { /* ignore */ }
   };
 
   const handleKey = (e: React.KeyboardEvent) => {
@@ -117,30 +222,44 @@ export default function MiddlePane({ notebookId, systemPrompt }: Props) {
   return (
     <main className="middle-pane">
       <div className="pane-header">
-        <h2 className="pane-title"><span className="pane-icon">💬</span> Chat</h2>
-        <button className="btn-ghost" onClick={clearChat} id="clear-chat-btn">Clear</button>
+        <h2 className="pane-title"><span className="pane-icon">{"\uD83D\uDCAC"}</span> Chat</h2>
+        <button className="btn-ghost" onClick={handleClear} id="clear-chat-btn" aria-label="Clear chat history">Clear</button>
       </div>
 
       <div className="messages-container">
         {messages.length === 0 && (
           <div className="chat-empty">
-            <div className="chat-empty-icon">🤖</div>
+            <div className="chat-empty-icon">{"\uD83D\uDCAC"}</div>
             <h3>Ask anything about your sources</h3>
-            <p>{noSources ? "Add sources to start chatting." : "Type a question below to get started."}</p>
-            {noSources && (
-              <button
-                className="action-btn mobile-add-sources-hint"
-                onClick={() => setMobileTab("sources")}
-              >
-                + Add Sources
-              </button>
+            <p>{noSources ? "Add sources on the left to start chatting." : "Type a question below, or pick a starter:"}</p>
+            {!noSources && (
+              <div className="prompt-starters">
+                {STARTER_PROMPTS.map((p) => (
+                  <button
+                    key={p}
+                    className="prompt-starter-btn"
+                    onClick={() => sendMessage(p)}
+                    disabled={isLoading}
+                  >
+                    {p}
+                  </button>
+                ))}
+              </div>
             )}
           </div>
         )}
-        {messages.map((msg) => <MessageBubble key={msg.id} msg={msg} />)}
+        {messages.map((msg) => (
+          <MessageBubble
+            key={msg.id}
+            msg={msg}
+            userInitial={userInitial}
+            onCopy={(content) => handleCopy(content, msg.id)}
+            onRegenerate={handleRegenerate}
+          />
+        ))}
         {isLoading && (
           <div className="message-bubble assistant">
-            <div className="message-avatar">🤖</div>
+            <AssistantAvatar />
             <div className="message-body"><div className="typing-indicator"><span/><span/><span/></div></div>
           </div>
         )}
@@ -148,14 +267,12 @@ export default function MiddlePane({ notebookId, systemPrompt }: Props) {
       </div>
 
       <div className="chat-input-area">
+        {/* Only show source warning in ONE place (left pane handles the rest) */}
         {noSources && (
-          <div className="sandbox-warning">⚠ Add at least one source to enable chat</div>
-        )}
-        {noSelected && (
-          <div className="sandbox-warning">⚠ No sources selected — select sources to chat</div>
+          <div className="sandbox-warning">{"\u26A0\uFE0F"} Add at least one source to enable chat</div>
         )}
 
-        {/* 🎨 Creativity slider 🎨 */}
+        {/* Creativity slider */}
         <div className="creativity-bar">
           <div className="creativity-labels">
             <span className="creativity-label-left">Precise</span>
@@ -164,8 +281,21 @@ export default function MiddlePane({ notebookId, systemPrompt }: Props) {
               <strong>{creativity.toFixed(1)}</strong>
               &nbsp;&mdash;&nbsp;{creativityLabel(creativity)}
             </span>
+            <button
+              className="slider-info-btn"
+              onClick={() => setShowSliderTip(!showSliderTip)}
+              title="What does this do?"
+              aria-label="Creativity info"
+            >
+              <span className="material-symbols-rounded" style={{ fontSize: 14 }}>info</span>
+            </button>
             <span className="creativity-label-right">Imaginative</span>
           </div>
+          {showSliderTip && (
+            <p className="slider-tip">
+              Controls how closely answers follow your sources. <strong>Precise</strong> = direct citations only. <strong>Imaginative</strong> = synthesized analysis beyond your documents.
+            </p>
+          )}
           <input
             id="creativity-slider"
             type="range"
@@ -194,10 +324,11 @@ export default function MiddlePane({ notebookId, systemPrompt }: Props) {
           <button
             id="send-btn"
             className="send-btn"
-            onClick={sendMessage}
+            onClick={() => sendMessage()}
             disabled={noSources || isLoading || !input.trim()}
+            aria-label="Send message"
           >
-            {isLoading ? <div className="spinner" /> : "↑"}
+            {isLoading ? <div className="spinner" /> : "\u27A4"}
           </button>
         </div>
       </div>
