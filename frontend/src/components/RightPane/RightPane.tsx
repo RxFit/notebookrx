@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 import { useState, useEffect, useRef } from "react";
 import { useAppStore } from "@/store/useAppStore";
 import { ApiService } from "@/lib/api";
@@ -53,8 +53,8 @@ function AudioTab() {
 
   return (
     <div className="tab-content">
-      <h3 className="tab-section-title">🎙 Podcast Generator</h3>
-      <p className="tab-desc">Generate a 2-host podcast from your sources using Gemini TTS.</p>
+      <h3 className="tab-section-title">🎤 Podcast Generator</h3>
+      <p className="tab-desc">Generate a 2-host podcast from your sources using Gemini TTS. The result is a full audio conversation between two AI hosts.</p>
       <button id="generate-audio-btn" className="action-btn" onClick={startGeneration} disabled={polling || docIds.length === 0}>
         {polling ? "Generating..." : "Generate Podcast"}
       </button>
@@ -108,17 +108,18 @@ function DiagramTab() {
 
   return (
     <div className="tab-content">
-      <h3 className="tab-section-title">📊 Diagram Generator</h3>
-      <input id="diagram-prompt" className="diagram-input" placeholder="Optional: describe the diagram you want..." value={prompt} onChange={(e) => setPrompt(e.target.value)} />
+      <h3 className="tab-section-title">📊 Visual Map</h3>
+      <p className="tab-desc">Generate a visual flowchart or concept map from your sources. Optionally describe the type of diagram you want.</p>
+      <input id="diagram-prompt" className="diagram-input" placeholder="Optional: describe the diagram (e.g. 'flowchart of the main process')" value={prompt} onChange={(e) => setPrompt(e.target.value)} />
       <button id="generate-diagram-btn" className="action-btn" onClick={generate} disabled={loading || docIds.length === 0}>
-        {loading ? "Generating..." : "Generate Diagram"}
+        {loading ? "Generating..." : "Generate Visual Map"}
       </button>
       {error && <p className="job-error">✗ {error}</p>}
       {mermaid && (
         <div className="mermaid-container">
           <Mermaid chart={mermaid} />
           <details className="mermaid-source">
-            <summary>View Mermaid Source</summary>
+            <summary>View Source</summary>
             <pre>{mermaid}</pre>
           </details>
         </div>
@@ -169,9 +170,10 @@ function ImageTab() {
       <h3 className="tab-section-title">🎨 Image Generator</h3>
       <p className="tab-desc">Generate a visual from your sources using Imagen 4.</p>
       <input id="image-prompt" className="diagram-input" placeholder="e.g. 'a diagram of the nervous system'" value={prompt} onChange={(e) => setPrompt(e.target.value)} />
-      <button id="generate-image-btn" className="action-btn" onClick={generate} disabled={polling || docIds.length === 0}>
+      <button id="generate-image-btn" className="action-btn" onClick={generate} disabled={polling || docIds.length === 0 || !prompt.trim()}>
         {polling ? "Generating..." : "Generate Image"}
       </button>
+      {!prompt.trim() && !polling && <p style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4 }}>Add a prompt above to describe what you&rsquo;d like generated.</p>}
       {job && (
         <div className="job-status">
           <div className="progress-bar"><div className="progress-fill" style={{ width: `${job.progress}%` }} /></div>
@@ -193,10 +195,12 @@ function ImageTab() {
 export default function RightPane({ notebookId }: Props) {
   const { rightTab, setRightTab } = useAppStore();
   const tabs = [
-    { key: "notes"   as const, label: "📝 Notes" },
-    { key: "audio"   as const, label: "🎙 Audio" },
-    { key: "diagram" as const, label: "📊 Diagram" },
-    { key: "image"   as const, label: "🎨 Image" },
+    { key: "notes"     as const, label: "📝 Notes" },
+    { key: "summary"   as const, label: "📋 Summary" },
+    { key: "study"     as const, label: "🎓 Study Guide" },
+    { key: "audio"     as const, label: "🎤 Audio" },
+    { key: "diagram"   as const, label: "📊 Visual Map" },
+    { key: "image"     as const, label: "🎨 Image" },
   ];
 
   return (
@@ -211,10 +215,12 @@ export default function RightPane({ notebookId }: Props) {
           </button>
         ))}
       </div>
-      {rightTab === "notes"   && <NotesTab notebookId={notebookId} />}
-      {rightTab === "audio"   && <AudioTab />}
-      {rightTab === "diagram" && <DiagramTab />}
-      {rightTab === "image"   && <ImageTab />}
+      {rightTab === "notes"     && <NotesTab notebookId={notebookId} />}
+      {rightTab === "summary"   && <SummarizeTab />}
+      {rightTab === "study"     && <StudyGuideTab />}
+      {rightTab === "audio"     && <AudioTab />}
+      {rightTab === "diagram"   && <DiagramTab />}
+      {rightTab === "image"     && <ImageTab />}
     </aside>
   );
 }

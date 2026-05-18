@@ -1,4 +1,4 @@
-import { create } from "zustand";
+﻿import { create } from "zustand";
 import { Document, ChatMessage, Note } from "@/types";
 
 type Theme = "light" | "dark" | "system";
@@ -17,7 +17,7 @@ interface AppState {
   selectAll: () => void;
   deselectAll: () => void;
 
-  // Citation → source highlight
+  // Citation â†’ source highlight
   highlightedDocumentId: string | null;
   setHighlightedDocument: (id: string | null) => void;
 
@@ -25,6 +25,7 @@ interface AppState {
   messages: ChatMessage[];
   isLoading: boolean;
   addMessage: (msg: ChatMessage) => void;
+  setMessages: (msgs: ChatMessage[]) => void;  // G1: bulk-set for history loading
   setLoading: (v: boolean) => void;
   clearChat: () => void;
 
@@ -68,7 +69,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   selectAll: () => set((s) => ({ selectedDocumentIds: new Set(s.documents.map((d) => d.id)) })),
   deselectAll: () => set({ selectedDocumentIds: new Set() }),
 
-  // Citation → source highlight
+  // Citation â†’ source highlight
   highlightedDocumentId: null,
   setHighlightedDocument: (id) => {
     set({ highlightedDocumentId: id });
@@ -81,6 +82,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   messages: [],
   isLoading: false,
   addMessage: (msg) => set((s) => ({ messages: [...s.messages, msg] })),
+  setMessages: (msgs) => set({ messages: msgs }),  // G1: bulk-set for history loading
   setLoading: (v) => set({ isLoading: v }),
   clearChat: () => set({ messages: [] }),
 
@@ -111,7 +113,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
   },
 
-  // Mobile tab — defaults to chat (primary mobile action)
+  // Mobile tab â€” defaults to chat (primary mobile action)
   mobileTab: "chat",
   setMobileTab: (tab) => set({ mobileTab: tab }),
 }));

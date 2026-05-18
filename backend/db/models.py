@@ -29,13 +29,14 @@ class Notebook(Base):
     id           = Column(String, primary_key=True)
     user_id      = Column(String, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     title        = Column(String, nullable=False, default="Untitled notebook")
-    emoji        = Column(String, nullable=False, default="📓")
+    emoji        = Column(String, nullable=False, default="\U0001f4d3")
     system_prompt= Column(Text, nullable=True)    # P1 #12 — per-notebook custom system prompt
     created_at   = Column(DateTime(timezone=True), server_default=func.now())
     updated_at   = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
     user         = relationship("User",     back_populates="notebooks")
     documents    = relationship("Document", back_populates="notebook", cascade="all, delete-orphan")
     notes        = relationship("Note",     back_populates="notebook", cascade="all, delete-orphan")
+    chat_messages = relationship("ChatMessage", back_populates="notebook", cascade="all, delete-orphan")
 
 
 class Document(Base):
@@ -72,3 +73,17 @@ class Note(Base):
     created_at  = Column(DateTime(timezone=True), server_default=func.now())
     updated_at  = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
     notebook    = relationship("Notebook", back_populates="notes")
+
+
+class ChatMessage(Base):
+    """Persisted chat messages for conversation history. Each row is one turn (user or assistant)."""
+    __tablename__ = "chat_messages"
+    id            = Column(String, primary_key=True)
+    notebook_id   = Column(String, ForeignKey("notebooks.id", ondelete="CASCADE"), nullable=False, index=True)
+    user_id       = Column(String, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    role          = Column(String, nullable=False)   # "user" | "assistant"
+    content       = Column(Text, nullable=False)
+    citations_json= Column(Text, nullable=True)       # JSON-serialized list of {chunk_id, excerpt, document_id}
+    intent        = Column(String, nullable=True)      # "retrieval" | "creative" | "synthesis"
+    created_at    = Column(DateTime(timezone=True), server_default=func.now())
+    notebook      = relationship("Notebook", back_populates="chat_messages")

@@ -1,7 +1,8 @@
 ﻿@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap");
 @import "tailwindcss";
+@import "./audit_additions.css";
 
-/* ── Design Tokens ─────────────────────────────────────── */
+/* â”€â”€ Design Tokens â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 :root {
   --bg-base:      #0a0c10;
   --bg-surface:   #10141c;
@@ -31,13 +32,13 @@
   --shadow-glow: 0 0 20px var(--accent-glow);
 }
 
-/* ── Reset ─────────────────────────────────────────────── */
+/* â”€â”€ Reset â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { height: 100%; font-family: var(--font-inter, "Inter", sans-serif); background: var(--bg-base); color: var(--text-primary); }
 button { cursor: pointer; font-family: inherit; }
 textarea, input { font-family: inherit; }
 
-/* ── App Shell ─────────────────────────────────────────── */
+/* â”€â”€ App Shell â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .app-shell {
   display: flex;
   flex-direction: column;
@@ -86,7 +87,7 @@ textarea, input { font-family: inherit; }
   letter-spacing: 0.3px;
 }
 
-/* ── Three Pane Layout ─────────────────────────────────── */
+/* â”€â”€ Three Pane Layout â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .three-pane-layout {
   display: grid;
   grid-template-columns: 280px 1fr 340px;
@@ -95,7 +96,7 @@ textarea, input { font-family: inherit; }
   gap: 0;
 }
 
-/* ── Pane Shared ───────────────────────────────────────── */
+/* â”€â”€ Pane Shared â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .left-pane, .middle-pane, .right-pane {
   display: flex;
   flex-direction: column;
@@ -131,7 +132,7 @@ textarea, input { font-family: inherit; }
   border: 1px solid var(--border);
 }
 
-/* ── Upload Zone ───────────────────────────────────────── */
+/* â”€â”€ Upload Zone â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .upload-zone {
   margin: 14px;
   border: 1.5px dashed var(--border);
@@ -153,7 +154,7 @@ textarea, input { font-family: inherit; }
 .upload-progress { font-size: 11px; color: var(--success); margin-top: 8px; font-weight: 500; }
 .upload-spinner { display: flex; justify-content: center; padding: 8px; }
 
-/* ── Document List ─────────────────────────────────────── */
+/* â”€â”€ Document List â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .select-controls {
   display: flex;
   align-items: center;
@@ -217,7 +218,7 @@ textarea, input { font-family: inherit; }
   line-height: 2;
 }
 
-/* ── Middle Pane ─────────────────────────────────────────── */
+/* â”€â”€ Middle Pane â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .messages-container {
   flex: 1;
   overflow-y: auto;
@@ -286,7 +287,7 @@ textarea, input { font-family: inherit; }
 .message-time { font-size: 10px; color: var(--text-muted); }
 .message-bubble.user .message-time { text-align: right; }
 
-/* ── Citations ─────────────────────────────────────────── */
+/* â”€â”€ Citations â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .citations-row { display: flex; flex-wrap: wrap; gap: 4px; }
 .citation-wrapper { position: relative; display: inline-block; }
 .citation-badge {
@@ -316,7 +317,7 @@ textarea, input { font-family: inherit; }
 .citation-excerpt { font-size: 12px; color: var(--text-secondary); font-style: italic; margin-bottom: 4px; }
 .citation-id { font-size: 10px; color: var(--text-muted); font-family: monospace; }
 
-/* ── Chat Input ─────────────────────────────────────────── */
+/* â”€â”€ Chat Input â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .chat-input-area {
   border-top: 1px solid var(--border);
   padding: 14px 20px;
@@ -364,7 +365,7 @@ textarea, input { font-family: inherit; }
 .send-btn:hover:not(:disabled) { background: var(--accent-hover); transform: translateY(-1px); box-shadow: var(--shadow-glow); }
 .send-btn:disabled { opacity: 0.3; cursor: not-allowed; }
 
-/* ── Right Pane ─────────────────────────────────────────── */
+/* â”€â”€ Right Pane â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .tab-bar {
   display: flex;
   border-bottom: 1px solid var(--border);
@@ -453,7 +454,7 @@ textarea, input { font-family: inherit; }
 .mermaid-source summary { font-size: 11px; color: var(--text-muted); cursor: pointer; }
 .mermaid-source pre { font-size: 11px; margin-top: 8px; overflow-x: auto; color: var(--text-secondary); }
 
-/* ── Shared Utilities ────────────────────────────────────── */
+/* â”€â”€ Shared Utilities â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .btn-ghost {
   background: none;
   border: 1px solid var(--border);
@@ -491,19 +492,19 @@ textarea, input { font-family: inherit; }
 .typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
 .typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
 
-/* ── Animations ─────────────────────────────────────────── */
+/* â”€â”€ Animations â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 @keyframes spin    { to { transform: rotate(360deg); } }
 @keyframes bounce  { 0%, 80%, 100% { transform: translateY(0); } 40% { transform: translateY(-6px); } }
 @keyframes slideIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 
-/* ── Scrollbars ─────────────────────────────────────────── */
+/* â”€â”€ Scrollbars â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 ::-webkit-scrollbar { width: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
 
 
-/* ── Auth Page ─────────────────────────────────────────── */
+/* â”€â”€ Auth Page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .auth-shell {
   min-height: 100vh;
   display: flex;
@@ -637,7 +638,7 @@ textarea, input { font-family: inherit; }
 }
 .auth-submit:disabled { opacity: 0.5; cursor: not-allowed; }
 
-/* ── Header User Info ─────────────────────────────────── */
+/* â”€â”€ Header User Info â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .header-user {
   display: flex;
   align-items: center;
@@ -661,7 +662,7 @@ textarea, input { font-family: inherit; }
   color: var(--danger);
 }
 
-/* ── Image Result ─────────────────────────────────────────── */
+/* â”€â”€ Image Result â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .image-result {
   display: flex;
   flex-direction: column;
@@ -674,9 +675,9 @@ textarea, input { font-family: inherit; }
   box-shadow: var(--shadow-md);
 }
 
-/* ─────────────────────────────────────────────────────────────
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
    LIGHT MODE TOKENS
-   ───────────────────────────────────────────────────────────── */
+   â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 [data-theme="light"] {
   --bg-base:      #f4f6fb;
   --bg-surface:   #ffffff;
@@ -694,9 +695,9 @@ textarea, input { font-family: inherit; }
   --shadow-glow: 0 0 20px var(--accent-glow);
 }
 
-/* ─────────────────────────────────────────────────────────────
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
    HEADER REDESIGN
-   ───────────────────────────────────────────────────────────── */
+   â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .header-actions {
   display: flex;
   align-items: center;
@@ -738,9 +739,9 @@ textarea, input { font-family: inherit; }
   white-space: nowrap;
 }
 
-/* ─────────────────────────────────────────────────────────────
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
    SETTINGS MENU
-   ───────────────────────────────────────────────────────────── */
+   â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .settings-menu {
   position: absolute;
   top: calc(100% + 8px);
@@ -791,9 +792,9 @@ textarea, input { font-family: inherit; }
 .settings-item:hover { background: var(--bg-hover); }
 .settings-item-danger { color: var(--danger) !important; }
 
-/* ─────────────────────────────────────────────────────────────
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
    DASHBOARD SHELL
-   ───────────────────────────────────────────────────────────── */
+   â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .dash-shell {
   flex: 1;
   overflow-y: auto;
@@ -832,9 +833,9 @@ textarea, input { font-family: inherit; }
 .dash-empty-icon { font-size: 48px; display: block; margin-bottom: 8px; }
 .dash-empty h3 { font-size: 18px; font-weight: 600; color: var(--text-secondary); }
 
-/* ─────────────────────────────────────────────────────────────
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
    DASHBOARD FILTERS
-   ───────────────────────────────────────────────────────────── */
+   â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .dash-filters {
   display: flex;
   align-items: center;
@@ -892,9 +893,9 @@ textarea, input { font-family: inherit; }
   cursor: pointer;
 }
 
-/* ─────────────────────────────────────────────────────────────
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
    NOTEBOOK GRID & CARDS
-   ───────────────────────────────────────────────────────────── */
+   â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .notebook-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
@@ -1004,9 +1005,9 @@ textarea, input { font-family: inherit; }
   margin-top: auto;
 }
 
-/* ─────────────────────────────────────────────────────────────
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
    MODALS (shared)
-   ───────────────────────────────────────────────────────────── */
+   â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .modal-overlay {
   position: fixed; inset: 0;
   background: rgba(0,0,0,0.6);
@@ -1121,9 +1122,9 @@ textarea, input { font-family: inherit; }
 }
 .upload-zone-large { padding: 40px 20px; min-height: 160px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
 
-/* ─────────────────────────────────────────────────────────────
-   LEFT PANE — ADD SOURCES BTN
-   ───────────────────────────────────────────────────────────── */
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+   LEFT PANE â€” ADD SOURCES BTN
+   â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .left-pane-add { padding: 14px 14px 6px; }
 .add-sources-btn {
   width: 100%;
@@ -1139,9 +1140,9 @@ textarea, input { font-family: inherit; }
 }
 .add-sources-btn:hover { transform: translateY(-1px); box-shadow: var(--shadow-glow); }
 
-/* ─────────────────────────────────────────────────────────────
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
    NOTES TAB
-   ───────────────────────────────────────────────────────────── */
+   â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .notes-editor { gap: 10px !important; }
 .notes-title-input {
   background: none;
@@ -1185,9 +1186,9 @@ textarea, input { font-family: inherit; }
 .note-card-actions { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
 .note-card-preview { font-size: 11px; color: var(--text-muted); line-height: 1.6; }
 
-/* ─────────────────────────────────────────────────────────────
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
    PANE COLLAPSE
-   ───────────────────────────────────────────────────────────── */
+   â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .three-pane-layout {
   transition: grid-template-columns 0.25s ease;
 }
@@ -1218,9 +1219,9 @@ textarea, input { font-family: inherit; }
 
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
-/* ─────────────────────────────────────────────────────────────
-   PANE COLLAPSE — UPDATED: 40px tab strip stays visible
-   ───────────────────────────────────────────────────────────── */
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+   PANE COLLAPSE â€” UPDATED: 40px tab strip stays visible
+   â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .pane-wrapper {
   position: relative;
   overflow: hidden;
@@ -1233,7 +1234,7 @@ textarea, input { font-family: inherit; }
   border-left: 1px solid var(--border);
 }
 
-/* When collapsed, the wrapper IS the 40px strip — center the tab button */
+/* When collapsed, the wrapper IS the 40px strip â€” center the tab button */
 .pane-wrapper-collapsed {
   align-items: center;
   justify-content: center;
@@ -1263,7 +1264,7 @@ textarea, input { font-family: inherit; }
 .left-collapse  { right: -12px; }
 .right-collapse { left: -12px; }
 
-/* Collapsed tab-strip button — fills the whole 40px strip */
+/* Collapsed tab-strip button â€” fills the whole 40px strip */
 .pane-tab-btn {
   position: static !important;
   transform: none !important;
@@ -1300,9 +1301,9 @@ textarea, input { font-family: inherit; }
   text-transform: uppercase;
 }
 
-/* ─────────────────────────────────────────────────────────────
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
    SOURCE SELECTION UI
-   ───────────────────────────────────────────────────────────── */
+   â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 /* Selection control bar */
 .source-select-bar {
@@ -1332,7 +1333,7 @@ textarea, input { font-family: inherit; }
 }
 .source-select-btn:hover { border-color: var(--accent); color: var(--accent); }
 
-/* Source list rows — clickable */
+/* Source list rows â€” clickable */
 .source-item {
   cursor: pointer;
   border-radius: var(--radius-sm);
@@ -1349,7 +1350,7 @@ textarea, input { font-family: inherit; }
 }
 .source-item.selected .doc-name { color: var(--text-primary); }
 
-/* Deselected state — dimmed */
+/* Deselected state â€” dimmed */
 .source-item.unselected { opacity: 0.55; }
 .source-item.unselected:hover { opacity: 0.85; }
 
@@ -1388,9 +1389,9 @@ textarea, input { font-family: inherit; }
   color: var(--warning);
 }
 
-/* ─────────────────────────────────────────────────────────────
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
    CREATIVITY SLIDER
-   ───────────────────────────────────────────────────────────── */
+   â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .creativity-bar {
   display: flex;
   flex-direction: column;
@@ -1426,7 +1427,7 @@ textarea, input { font-family: inherit; }
   border-radius: 99px;
   outline: none;
   cursor: pointer;
-  /* gradient track: blue → purple → orange */
+  /* gradient track: blue â†’ purple â†’ orange */
   background: linear-gradient(
     to right,
     hsl(220, 80%, 55%) 0%,
@@ -1462,7 +1463,7 @@ textarea, input { font-family: inherit; }
 }
 
 /* =====================================================
-   SOURCE HIGHLIGHT — citation → source jump
+   SOURCE HIGHLIGHT â€” citation â†’ source jump
    ===================================================== */
 .source-highlighted {
   border-left: 3px solid var(--accent) !important;
@@ -1568,7 +1569,7 @@ textarea, input { font-family: inherit; }
 }
 .note-title-input:focus { border-color: var(--accent); }
 /* =====================================================
-   PHASE 2 — P1 UX COMPLETENESS
+   PHASE 2 â€” P1 UX COMPLETENESS
    ===================================================== */
 
 /* Editable notebook title (#10) */
@@ -1741,7 +1742,7 @@ textarea, input { font-family: inherit; }
   50% { opacity: 0.4; }
 }
 /* =====================================================
-   PHASE 3 — P2 POLISH & PRODUCTION
+   PHASE 3 â€” P2 POLISH & PRODUCTION
    ===================================================== */
 
 /* Mono font for code blocks (#18) */
@@ -1802,7 +1803,7 @@ code, pre, .font-mono { font-family: var(--font-mono, "Roboto Mono", monospace);
   outline: none;
 }
 /* =====================================================
-   PHASE 4 — P3 GOOGLE OAUTH, DRIVE, COLLAB
+   PHASE 4 â€” P3 GOOGLE OAUTH, DRIVE, COLLAB
    ===================================================== */
 
 /* Google SSO button (#24) */
@@ -1865,9 +1866,9 @@ code, pre, .font-mono { font-family: var(--font-mono, "Roboto Mono", monospace);
   bottom: -2px; right: -4px;
   animation: pulse 2s ease-in-out infinite;
 }
-/* ═══════════════════════════════════════════════════════════════
-   MOBILE RESPONSIVE — BREAKPOINT 768px
-   ═══════════════════════════════════════════════════════════════ */
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   MOBILE RESPONSIVE â€” BREAKPOINT 768px
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
 /* Desktop-only / Mobile-only visibility */
 .mobile-pane-container,

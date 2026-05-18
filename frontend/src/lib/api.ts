@@ -1,5 +1,5 @@
 import axios from "axios";
-import { Notebook, Note, Document, ChatResponse, IngestResponse, MediaJob, AuthUser, TokenResponse, StudyGuide, SearchResult } from "@/types";
+import { Notebook, Note, Document, ChatResponse, IngestResponse, MediaJob, AuthUser, TokenResponse, StudyGuide, SearchResult, ChatMessage } from "@/types";
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
 
@@ -137,6 +137,21 @@ export const ApiService = {
       ...(creativity !== undefined ? { temperature: creativity } : {}),
     });
     return data;
+  },
+  // —— G1: Chat history persistence ——
+  async getChatHistory(notebookId: string): Promise<ChatMessage[]> {
+    const { data } = await api.get("/api/chat/history", { params: { notebook_id: notebookId } });
+    // Map backend response to frontend ChatMessage shape
+    return data.map((item: { id: string; role: "user" | "assistant"; content: string; citations?: { chunk_id: string; excerpt: string; document_id: string }[]; created_at: string }) => ({
+      id: item.id,
+      role: item.role,
+      content: item.content,
+      citations: item.citations || [],
+      timestamp: new Date(item.created_at),
+    }));
+  },
+  async clearChatHistory(notebookId: string): Promise<void> {
+    await api.delete("/api/chat/history", { params: { notebook_id: notebookId } });
   },
   async summarizeSources(selectedDocumentIds: string[]): Promise<{ summary: string }> {
     const { data } = await api.post("/api/media/summarize", { selected_document_ids: selectedDocumentIds });

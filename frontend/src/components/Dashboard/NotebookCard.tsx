@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Notebook } from "@/types";
@@ -55,7 +55,19 @@ export default function NotebookCard({ notebook, onDeleted, onRenamed }: Props) 
   };
 
   return (
-    <div className="notebook-card" id={`notebook-${notebook.id}`} onClick={openNotebook}>
+    <div
+      className="notebook-card"
+      id={`notebook-${notebook.id}`}
+      onClick={openNotebook}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          openNotebook();
+        }
+      }}
+    >
       <div className="notebook-card-top">
         <span className="notebook-emoji">{notebook.emoji}</span>
         <div style={{ position: "relative" }}>
@@ -64,6 +76,8 @@ export default function NotebookCard({ notebook, onDeleted, onRenamed }: Props) 
             id={`notebook-menu-${notebook.id}`}
             onClick={(e) => { e.stopPropagation(); setMenuOpen(!menuOpen); }}
             title="More options"
+            aria-label={`Options for ${notebook.title}`}
+            aria-expanded={menuOpen}
           >
             ⋯
           </button>
@@ -86,6 +100,7 @@ export default function NotebookCard({ notebook, onDeleted, onRenamed }: Props) 
           onClick={(e) => e.stopPropagation()}
           autoFocus
           disabled={saving}
+          aria-label="Rename notebook"
         />
       ) : (
         <h3 className="notebook-title">{notebook.title}</h3>
