@@ -9,14 +9,16 @@ interface Props { notebookId: string; systemPrompt?: string; }
 
 function CitationBadge({ citation, index }: { citation: Citation; index: number }) {
   const [open, setOpen] = useState(false);
-  const { setHighlightedDocument, toggleLeftPane, leftCollapsed } = useAppStore();
+  const { setHighlightedDocument, toggleLeftPane, leftCollapsed, setMobileTab } = useAppStore();
 
   const handleClick = () => {
     setOpen(!open);
     // Jump to source in left pane
     if (citation.document_id) {
-      // Auto-expand left pane if collapsed
+      // Auto-expand left pane if collapsed (desktop)
       if (leftCollapsed) toggleLeftPane();
+      // Switch to sources tab on mobile
+      setMobileTab("sources");
       setHighlightedDocument(citation.document_id);
     }
   };
@@ -36,7 +38,7 @@ function CitationBadge({ citation, index }: { citation: Citation; index: number 
           <p className="citation-excerpt">&ldquo;{citation.excerpt}&rdquo;</p>
           <p className="citation-id">Chunk: {citation.chunk_id.slice(0, 8)}&hellip;</p>
           {citation.document_id && (
-            <p className="citation-source-hint">↑ Source highlighted in left pane</p>
+            <p className="citation-source-hint">↑ Source highlighted in Sources panel</p>
           )}
         </div>
       )}
@@ -71,7 +73,7 @@ function creativityLabel(val: number): string {
 }
 
 export default function MiddlePane({ notebookId, systemPrompt }: Props) {
-  const { messages, isLoading, selectedDocumentIds, documents, addMessage, setLoading, clearChat } = useAppStore();
+  const { messages, isLoading, selectedDocumentIds, documents, addMessage, setLoading, clearChat, setMobileTab } = useAppStore();
   const [input, setInput] = useState("");
   const [creativity, setCreativity] = useState(0.0);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -124,7 +126,15 @@ export default function MiddlePane({ notebookId, systemPrompt }: Props) {
           <div className="chat-empty">
             <div className="chat-empty-icon">🤖</div>
             <h3>Ask anything about your sources</h3>
-            <p>{noSources ? "Add sources on the left to start chatting." : "Type a question below to get started."}</p>
+            <p>{noSources ? "Add sources to start chatting." : "Type a question below to get started."}</p>
+            {noSources && (
+              <button
+                className="action-btn mobile-add-sources-hint"
+                onClick={() => setMobileTab("sources")}
+              >
+                + Add Sources
+              </button>
+            )}
           </div>
         )}
         {messages.map((msg) => <MessageBubble key={msg.id} msg={msg} />)}
@@ -142,7 +152,7 @@ export default function MiddlePane({ notebookId, systemPrompt }: Props) {
           <div className="sandbox-warning">⚠ Add at least one source to enable chat</div>
         )}
         {noSelected && (
-          <div className="sandbox-warning">⚠ No sources selected - select sources on the left</div>
+          <div className="sandbox-warning">⚠ No sources selected — select sources to chat</div>
         )}
 
         {/* 🎨 Creativity slider 🎨 */}
