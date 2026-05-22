@@ -8,9 +8,9 @@ import CreateNotebookModal from "./CreateNotebookModal";
 import { useAuth } from "@/context/AuthContext";
 
 const TEMPLATES = [
-  { emoji: "📊", title: "Research Paper",   desc: "Analyze academic papers and extract key findings" },
-  { emoji: "💼", title: "Meeting Notes",    desc: "Summarize meetings and track action items" },
-  { emoji: "📚", title: "Study Guide",      desc: "Turn textbooks and lectures into study materials" },
+  { icon: "analytics", title: "KPI Dashboard",   desc: "Analyze executive metrics and extract key findings" },
+  { icon: "summarize", title: "Executive Brief",    desc: "Summarize strategic alignments and action items" },
+  { icon: "biotech", title: "Biological Asset Mgt",      desc: "Turn clinical data into actionable insights" },
 ];
 
 export default function DashboardPage() {
@@ -45,7 +45,7 @@ export default function DashboardPage() {
   const handleTemplate = async (tpl: typeof TEMPLATES[0]) => {
     setCreatingTemplate(true);
     try {
-      const nb = await NotebookService.create(tpl.title, tpl.emoji);
+      const nb = await NotebookService.create(tpl.title, tpl.icon);
       setNotebooks((prev) => [nb, ...prev]);
     } catch { /* ignore */ } finally {
       setCreatingTemplate(false);
@@ -101,20 +101,21 @@ export default function DashboardPage() {
 
       {/* First-run onboarding: show when there are no notebooks at all */}
       {notebooks.length === 0 && !loading && (
-        <div className="onboarding-empty">
-          <p className="onboarding-heading">👋 Start with a template</p>
-          <p className="onboarding-sub">Pick a notebook type to get started, or create a blank one above.</p>
-          <div className="onboarding-templates">
+        <div className="onboarding-empty" style={{ padding: "40px", border: "1px solid var(--border)", borderRadius: "8px", background: "var(--bg-surface)", textAlign: "center" }}>
+          <p className="onboarding-heading" style={{ fontSize: "18px", fontWeight: "600", marginBottom: "8px" }}>Initialize Workspace</p>
+          <p className="onboarding-sub" style={{ color: "var(--text-muted)", fontSize: "14px", marginBottom: "32px" }}>Select a module framework to proceed, or instantiate a blank module.</p>
+          <div className="onboarding-templates" style={{ display: "flex", gap: "16px", justifyContent: "center" }}>
             {TEMPLATES.map((tpl) => (
               <button
                 key={tpl.title}
                 className="template-card"
                 onClick={() => handleTemplate(tpl)}
                 disabled={creatingTemplate}
+                style={{ background: "var(--bg-base)", border: "1px solid var(--border)", borderRadius: "8px", padding: "24px 16px", width: "220px", display: "flex", flexDirection: "column", alignItems: "center", gap: "12px", cursor: "pointer" }}
               >
-                <span className="template-emoji">{tpl.emoji}</span>
-                <span className="template-title">{tpl.title}</span>
-                <span className="template-desc">{tpl.desc}</span>
+                <span className="template-icon material-symbols-rounded" style={{ fontSize: "28px", color: "var(--accent)" }}>{tpl.icon}</span>
+                <span className="template-title" style={{ fontWeight: "600", fontSize: "14px", color: "var(--text-primary)" }}>{tpl.title}</span>
+                <span className="template-desc" style={{ fontSize: "12px", color: "var(--text-muted)", textAlign: "center", lineHeight: "1.4" }}>{tpl.desc}</span>
               </button>
             ))}
           </div>
@@ -123,10 +124,10 @@ export default function DashboardPage() {
 
       {/* Search empty state */}
       {filtered.length === 0 && notebooks.length > 0 && search !== "" && (
-        <div className="dash-empty">
-          <p className="dash-empty-icon">🔍</p>
-          <h3>No results for &ldquo;{search}&rdquo;</h3>
-          <p>Try a different search term.</p>
+        <div className="dash-empty" style={{ textAlign: "center", padding: "48px 0" }}>
+          <p className="dash-empty-icon material-symbols-rounded" style={{ fontSize: "32px", color: "var(--text-muted)", marginBottom: "16px" }}>search_off</p>
+          <h3 style={{ fontSize: "18px", fontWeight: "600", marginBottom: "8px" }}>No constraints matched &ldquo;{search}&rdquo;</h3>
+          <p style={{ color: "var(--text-secondary)", fontSize: "14px" }}>Modify query parameters to continue.</p>
         </div>
       )}
 
