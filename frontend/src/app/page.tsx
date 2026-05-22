@@ -42,20 +42,21 @@ export default function Home() {
   return (
     <div className="app-shell">
       <header className="app-header">
-        <a href="/" className="header-brand" style={{ textDecoration: "none" }}>
-          <span className="brand-icon">🧠</span>
-          <span className="brand-name">notebook<span className="brand-dot-blue">.blue</span></span>
+        <a href="/" className="header-brand" style={{ textDecoration: "none", display: "flex", alignItems: "center", gap: "8px" }}>
+          <span className="brand-icon material-symbols-rounded" style={{ color: "var(--accent)" }}>dataset</span>
+          <span className="brand-name">RX<span className="brand-dot-blue">Fit</span></span>
         </a>
 
         <div className="header-actions">
           <div style={{ position: "relative" }}>
             <button
               id="settings-btn"
-              className="header-icon-btn"
+              className="header-icon-btn material-symbols-rounded"
               onClick={() => setSettingsOpen(!settingsOpen)}
               title="Settings"
+              style={{ fontSize: "20px", color: "var(--text-secondary)" }}
             >
-              ⚙️
+              settings
             </button>
             {settingsOpen && (
               <SettingsMenu
@@ -71,9 +72,9 @@ export default function Home() {
       </header>
 
       <div className="dash-shell">
-        <div className="dash-hero">
-          <h1 className="dash-heading">Good {timeOfDay()}, {firstName} 👋</h1>
-          <p className="dash-subheading">AI-powered research, grounded in your sources</p>
+        <div className="dash-hero" style={{ marginBottom: "32px", paddingBottom: "16px", borderBottom: "1px solid var(--border)" }}>
+          <h1 className="dash-heading" style={{ fontSize: "24px", fontWeight: "600", marginBottom: "4px" }}>Executive Briefing: {firstName}</h1>
+          <p className="dash-subheading" style={{ color: "var(--text-muted)", fontSize: "14px" }}>Active Session &bull; Clinical Luxury & Data-Viz</p>
         </div>
         <DashboardPage />
       </div>
