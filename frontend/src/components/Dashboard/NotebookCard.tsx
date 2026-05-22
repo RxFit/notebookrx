@@ -69,7 +69,9 @@ export default function NotebookCard({ notebook, onDeleted, onRenamed }: Props) 
       }}
     >
       <div className="notebook-card-top">
-        <span className="notebook-emoji">{notebook.emoji}</span>
+        <span className="notebook-emoji">
+          {/^[a-z_]+$/.test(notebook.emoji) ? <span className="material-symbols-rounded" style={{fontSize: "24px", color: "var(--accent)"}}>{notebook.emoji}</span> : notebook.emoji}
+        </span>
         <div style={{ position: "relative" }}>
           <button
             className="notebook-menu-btn"
@@ -83,8 +85,8 @@ export default function NotebookCard({ notebook, onDeleted, onRenamed }: Props) 
           </button>
           {menuOpen && (
             <div className="notebook-menu-dropdown">
-              <button onClick={startRename}>✏️ Rename</button>
-              <button onClick={handleDelete} style={{ color: "var(--danger)" }}>🗑 Delete</button>
+              <button onClick={startRename} style={{display: "flex", alignItems: "center", gap: "6px"}}><span className="material-symbols-rounded" style={{fontSize: "16px"}}>edit</span> Rename</button>
+              <button onClick={handleDelete} style={{ color: "var(--danger)", display: "flex", alignItems: "center", gap: "6px" }}><span className="material-symbols-rounded" style={{fontSize: "16px"}}>delete</span> Delete</button>
             </div>
           )}
         </div>

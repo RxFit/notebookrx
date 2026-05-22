@@ -3,7 +3,7 @@ import { useState, useRef, useEffect } from "react";
 import { NotebookService } from "@/lib/api";
 import { Notebook } from "@/types";
 
-const EMOJI_OPTIONS = ["📓","📔","📒","📕","📗","📘","📙","🗒️","📋","🗂️","🔬","💊","🧬","🏥","⚕️","🧪","💡","🔭","📊","📈"];
+const ICON_OPTIONS = ["book", "menu_book", "library_books", "import_contacts", "auto_stories", "article", "description", "note_alt", "science", "biotech", "medical_services", "health_and_safety", "vaccines", "biotech", "query_stats", "analytics", "monitoring", "data_exploration", "biotech", "hub"];
 
 interface Props {
   onCreated: (nb: Notebook) => void;
@@ -12,7 +12,7 @@ interface Props {
 
 export default function CreateNotebookModal({ onCreated, onClose }: Props) {
   const [title, setTitle] = useState("");
-  const [emoji, setEmoji] = useState("📓");
+  const [emoji, setEmoji] = useState("book");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const modalRef = useRef<HTMLDivElement>(null);
@@ -83,13 +83,13 @@ export default function CreateNotebookModal({ onCreated, onClose }: Props) {
 
           <label className="form-label" style={{ marginTop: 16 }}>Icon</label>
           <div className="emoji-grid">
-            {EMOJI_OPTIONS.map((e) => (
+            {ICON_OPTIONS.map((e) => (
               <button
                 key={e}
                 className={`emoji-btn ${emoji === e ? "selected" : ""}`}
                 onClick={() => setEmoji(e)}
               >
-                {e}
+                <span className="material-symbols-rounded" style={{fontSize: "24px"}}>{e}</span>
               </button>
             ))}
           </div>

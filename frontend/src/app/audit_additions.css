@@ -389,21 +389,68 @@
    P4: Accessibility — Pane collapse visible on touch
    ===================================================== */
 .pane-collapse-btn {
-  opacity: 0.35 !important;
-}
-.pane-wrapper:hover .pane-collapse-btn {
   opacity: 1 !important;
+  background: rgba(229, 192, 123, 0.15); /* Champagne Gold tint */
+  border: 1px solid rgba(229, 192, 123, 0.3);
+  backdrop-filter: blur(8px);
+  color: var(--accent);
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  transition: all 0.2s ease;
+}
+.pane-collapse-btn:hover {
+  background: rgba(229, 192, 123, 0.3);
+  transform: scale(1.1);
+}
+
+/* Right pane media generation tools grouping */
+.tab-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+  margin-bottom: 12px;
+}
+.tab-btn {
+  flex: 1 1 calc(50% - 6px);
+  text-align: center;
+  padding: 6px 4px;
+  font-size: 12px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+.tab-btn.active {
+  background: var(--accent);
+  color: #111;
+  border-color: var(--accent);
+  font-weight: 600;
 }
 
 /* =====================================================
    P5: Notebook.blue Specific Aesthetic Updates
    ===================================================== */
-/* Top bar glow */
+/* Top bar glow & glassmorphic header */
 .app-header {
-  border-top: 3px solid var(--accent);
+  border-top: 4px solid var(--accent);
   box-shadow: 0 4px 24px var(--accent-glow);
+  background: rgba(20, 20, 20, 0.6) !important;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   position: relative;
   z-index: 10;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 /* Glass morphic middle pane (chat) */
