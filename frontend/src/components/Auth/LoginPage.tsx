@@ -41,7 +41,7 @@ export default function LoginPage() {
     <div className="auth-shell">
       <div className="auth-card">
         <div className="auth-brand">
-          <span className="auth-icon">🧠</span>
+          <span className="auth-icon material-symbols-rounded" style={{fontSize: "32px", color: "var(--accent)"}}>psychology</span>
           <h1 className="auth-title">notebook<span className="brand-dot-blue">.blue</span></h1>
           <p className="auth-subtitle">Upload your documents. Ask anything. Get cited answers.</p>
         </div>

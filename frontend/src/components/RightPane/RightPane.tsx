@@ -53,7 +53,7 @@ function AudioTab() {
 
   return (
     <div className="tab-content">
-      <h3 className="tab-section-title">🎤 Podcast Generator</h3>
+      <h3 className="tab-section-title"><span className="material-symbols-rounded" style={{fontSize: "20px", verticalAlign: "middle"}}>mic</span> Podcast Generator</h3>
       <p className="tab-desc">Generate a 2-host podcast from your sources using Gemini TTS. The result is a full audio conversation between two AI hosts.</p>
       <button id="generate-audio-btn" className="action-btn" onClick={startGeneration} disabled={polling || docIds.length === 0}>
         {polling ? "Generating..." : "Generate Podcast"}
@@ -108,7 +108,7 @@ function DiagramTab() {
 
   return (
     <div className="tab-content">
-      <h3 className="tab-section-title">📊 Visual Map</h3>
+      <h3 className="tab-section-title"><span className="material-symbols-rounded" style={{fontSize: "20px", verticalAlign: "middle"}}>account_tree</span> Visual Map</h3>
       <p className="tab-desc">Generate a visual flowchart or concept map from your sources. Optionally describe the type of diagram you want.</p>
       <input id="diagram-prompt" className="diagram-input" placeholder="Optional: describe the diagram (e.g. 'flowchart of the main process')" value={prompt} onChange={(e) => setPrompt(e.target.value)} />
       <button id="generate-diagram-btn" className="action-btn" onClick={generate} disabled={loading || docIds.length === 0}>
@@ -167,7 +167,7 @@ function ImageTab() {
 
   return (
     <div className="tab-content">
-      <h3 className="tab-section-title">🎨 Image Generator</h3>
+      <h3 className="tab-section-title"><span className="material-symbols-rounded" style={{fontSize: "20px", verticalAlign: "middle"}}>palette</span> Image Generator</h3>
       <p className="tab-desc">Generate a visual from your sources using Imagen 4.</p>
       <input id="image-prompt" className="diagram-input" placeholder="e.g. 'a diagram of the nervous system'" value={prompt} onChange={(e) => setPrompt(e.target.value)} />
       <button id="generate-image-btn" className="action-btn" onClick={generate} disabled={polling || docIds.length === 0 || !prompt.trim()}>
@@ -195,18 +195,18 @@ function ImageTab() {
 export default function RightPane({ notebookId }: Props) {
   const { rightTab, setRightTab } = useAppStore();
   const tabs = [
-    { key: "notes"     as const, label: "📝 Notes" },
-    { key: "summary"   as const, label: "📋 Summary" },
-    { key: "study"     as const, label: "🎓 Study Guide" },
-    { key: "audio"     as const, label: "🎤 Audio" },
-    { key: "diagram"   as const, label: "📊 Visual Map" },
-    { key: "image"     as const, label: "🎨 Image" },
+    { key: "notes"     as const, label: <><span className="material-symbols-rounded" style={{fontSize: "16px"}}>description</span> Notes</> },
+    { key: "summary"   as const, label: <><span className="material-symbols-rounded" style={{fontSize: "16px"}}>summarize</span> Summary</> },
+    { key: "study"     as const, label: <><span className="material-symbols-rounded" style={{fontSize: "16px"}}>school</span> Study Guide</> },
+    { key: "audio"     as const, label: <><span className="material-symbols-rounded" style={{fontSize: "16px"}}>mic</span> Audio</> },
+    { key: "diagram"   as const, label: <><span className="material-symbols-rounded" style={{fontSize: "16px"}}>account_tree</span> Visual Map</> },
+    { key: "image"     as const, label: <><span className="material-symbols-rounded" style={{fontSize: "16px"}}>palette</span> Image</> },
   ];
 
   return (
     <aside className="right-pane">
       <div className="pane-header">
-        <h2 className="pane-title"><span className="pane-icon">✨</span> Studio</h2>
+        <h2 className="pane-title"><span className="pane-icon material-symbols-rounded" style={{fontSize: "20px"}}>auto_awesome</span> Studio</h2>
       </div>
       <div className="tab-bar">
         {tabs.map((t) => (
