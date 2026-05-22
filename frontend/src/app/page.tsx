@@ -44,7 +44,7 @@ export default function Home() {
       <header className="app-header">
         <a href="/" className="header-brand" style={{ textDecoration: "none", display: "flex", alignItems: "center", gap: "8px" }}>
           <span className="brand-icon material-symbols-rounded" style={{ color: "var(--accent)" }}>dataset</span>
-          <span className="brand-name">RX<span className="brand-dot-blue">Fit</span></span>
+          <span className="brand-name">notebook<span className="brand-dot-blue">.blue</span></span>
         </a>
 
         <div className="header-actions">
@@ -74,7 +74,7 @@ export default function Home() {
       <div className="dash-shell">
         <div className="dash-hero" style={{ marginBottom: "32px", paddingBottom: "16px", borderBottom: "1px solid var(--border)" }}>
           <h1 className="dash-heading" style={{ fontSize: "24px", fontWeight: "600", marginBottom: "4px" }}>Executive Briefing: {firstName}</h1>
-          <p className="dash-subheading" style={{ color: "var(--text-muted)", fontSize: "14px" }}>Active Session &bull; Clinical Luxury & Data-Viz</p>
+          <p className="dash-subheading" style={{ color: "var(--text-muted)", fontSize: "14px" }}>Active Session</p>
         </div>
         <DashboardPage />
       </div>

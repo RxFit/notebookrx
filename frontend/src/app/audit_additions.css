@@ -394,3 +394,42 @@
 .pane-wrapper:hover .pane-collapse-btn {
   opacity: 1 !important;
 }
+
+/* =====================================================
+   P5: Notebook.blue Specific Aesthetic Updates
+   ===================================================== */
+/* Top bar glow */
+.app-header {
+  border-top: 3px solid var(--accent);
+  box-shadow: 0 4px 24px var(--accent-glow);
+  position: relative;
+  z-index: 10;
+}
+
+/* Glass morphic middle pane (chat) */
+.messages-container {
+  background: rgba(30, 30, 30, 0.4);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-lg, 12px);
+  margin-bottom: 8px;
+}
+[data-theme="light"] .messages-container {
+  background: rgba(255, 255, 255, 0.5);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+/* Glass morphic notebook cards */
+.notebook-card {
+  background: rgba(30, 30, 30, 0.4);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+}
+[data-theme="light"] .notebook-card {
+  background: rgba(255, 255, 255, 0.5);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  box-shadow: var(--shadow-sm);
+}
