@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 import { useState, useRef, useEffect } from "react";
 import { useAppStore } from "@/store/useAppStore";
 import { ApiService } from "@/lib/api";
@@ -222,14 +222,14 @@ export default function MiddlePane({ notebookId, systemPrompt }: Props) {
   return (
     <main className="middle-pane">
       <div className="pane-header">
-        <h2 className="pane-title"><span className="pane-icon">{"\uD83D\uDCAC"}</span> Chat</h2>
+        <h2 className="pane-title"><span className="pane-icon material-symbols-rounded" style={{ fontSize: "20px" }}>forum</span> Chat</h2>
         <button className="btn-ghost" onClick={handleClear} id="clear-chat-btn" aria-label="Clear chat history">Clear</button>
       </div>
 
       <div className="messages-container">
         {messages.length === 0 && (
           <div className="chat-empty">
-            <div className="chat-empty-icon">{"\uD83D\uDCAC"}</div>
+            <div className="chat-empty-icon material-symbols-rounded" style={{ fontSize: "48px", color: "var(--text-muted)" }}>forum</div>
             <h3>Ask anything about your sources</h3>
             <p>{noSources ? "Add sources on the left to start chatting." : "Type a question below, or pick a starter:"}</p>
             {!noSources && (
@@ -269,7 +269,7 @@ export default function MiddlePane({ notebookId, systemPrompt }: Props) {
       <div className="chat-input-area">
         {/* Only show source warning in ONE place (left pane handles the rest) */}
         {noSources && (
-          <div className="sandbox-warning">{"\u26A0\uFE0F"} Add at least one source to enable chat</div>
+          <div className="sandbox-warning"><span className="material-symbols-rounded" style={{ fontSize: "16px", verticalAlign: "middle" }}>warning</span> Add at least one source to enable chat</div>
         )}
 
         {/* Creativity slider */}

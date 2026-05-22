@@ -71,8 +71,8 @@ export default function SettingsMenu({ onClose, onSignOut }: Props) {
           <p className="help-text">3. Click citation badges [1] to jump to the source document.</p>
           <p className="help-text">4. Use Studio tabs to generate Audio, Summaries, and Study Guides.</p>
         </div>
-        <a className="settings-item" href="https://github.com/RxFit/notebookrx" target="_blank" rel="noopener noreferrer" onClick={onClose}>
-          📖 View on GitHub
+        <a className="settings-item" href="https://github.com/RxFit/notebookrx" target="_blank" rel="noopener noreferrer" onClick={onClose} style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <span className="material-symbols-rounded" style={{fontSize: "18px"}}>code</span> View on GitHub
         </a>
       </div>
     );
@@ -87,7 +87,7 @@ export default function SettingsMenu({ onClose, onSignOut }: Props) {
           <button className="modal-close" onClick={() => setShowFeedback(false)} aria-label="Close feedback modal">✕</button>
         </div>
         {feedbackSent ? (
-          <p style={{ fontSize: 13, color: "var(--success)", padding: "12px 0" }}>✅ Thank you for your feedback!</p>
+          <p style={{ fontSize: 13, color: "var(--success)", padding: "12px 0", display: "flex", alignItems: "center", gap: "6px" }}><span className="material-symbols-rounded" style={{fontSize: "16px"}}>check_circle</span> Thank you for your feedback!</p>
         ) : (
           <>
             <textarea
@@ -121,7 +121,7 @@ export default function SettingsMenu({ onClose, onSignOut }: Props) {
               className={`settings-theme-btn ${theme === t ? "active" : ""}`}
               onClick={() => setTheme(t)}
             >
-              {t === "light" ? "☀️" : t === "dark" ? "🌙" : "💻"} {t.charAt(0).toUpperCase() + t.slice(1)}
+              {t === "light" ? <span className="material-symbols-rounded" style={{fontSize: "16px"}}>light_mode</span> : t === "dark" ? <span className="material-symbols-rounded" style={{fontSize: "16px"}}>dark_mode</span> : <span className="material-symbols-rounded" style={{fontSize: "16px"}}>desktop_windows</span>} {t.charAt(0).toUpperCase() + t.slice(1)}
             </button>
           ))}
         </div>
@@ -147,20 +147,20 @@ export default function SettingsMenu({ onClose, onSignOut }: Props) {
       <div className="settings-divider" />
 
       {/* Help & Feedback */}
-      <button className="settings-item" id="help-btn" onClick={() => setShowHelp(true)}>
-        ❓ Help &amp; Shortcuts
+      <button className="settings-item" id="help-btn" onClick={() => setShowHelp(true)} style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+        <span className="material-symbols-rounded" style={{fontSize: "18px"}}>help</span> Help &amp; Shortcuts
       </button>
-      <button className="settings-item" id="feedback-btn" onClick={() => setShowFeedback(true)}>
-        💬 Send Feedback
+      <button className="settings-item" id="feedback-btn" onClick={() => setShowFeedback(true)} style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+        <span className="material-symbols-rounded" style={{fontSize: "18px"}}>chat_bubble</span> Send Feedback
       </button>
-      <button className="settings-item" onClick={() => { window.open("https://github.com/RxFit/notebookrx/blob/master/LICENSE", "_blank"); onClose(); }}>
-        📄 Licenses
+      <button className="settings-item" onClick={() => { window.open("https://github.com/RxFit/notebookrx/blob/master/LICENSE", "_blank"); onClose(); }} style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+        <span className="material-symbols-rounded" style={{fontSize: "18px"}}>description</span> Licenses
       </button>
 
       <div className="settings-divider" />
 
-      <button className="settings-item settings-item-danger" onClick={() => { onSignOut(); onClose(); }}>
-        🚪 Sign Out
+      <button className="settings-item settings-item-danger" onClick={() => { onSignOut(); onClose(); }} style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+        <span className="material-symbols-rounded" style={{fontSize: "18px"}}>logout</span> Sign Out
       </button>
     </div>
   );

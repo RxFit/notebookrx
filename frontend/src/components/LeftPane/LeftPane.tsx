@@ -7,12 +7,12 @@ import AddSourcesModal from "./AddSourcesModal";
 interface Props { notebookId: string; }
 
 const DOC_ICON: Record<string, string> = {
-  pdf: "📄", txt: "📝", json: "🗂️", md: "📋",
+  pdf: "description", txt: "article", json: "data_object", md: "text_snippet",
 };
 
 function getIcon(filename: string): string {
   const ext = filename.split(".").pop()?.toLowerCase() || "";
-  return DOC_ICON[ext] || "📄";
+  return DOC_ICON[ext] || "description";
 }
 
 export default function LeftPane({ notebookId }: Props) {
@@ -58,7 +58,7 @@ export default function LeftPane({ notebookId }: Props) {
       {/* ── Header ── */}
       <div className="pane-header">
         <h2 className="pane-title">
-          <span className="pane-icon">📚</span> Sources
+          <span className="pane-icon material-symbols-rounded" style={{ fontSize: "20px" }}>library_books</span> Sources
         </h2>
         <span className="doc-count">{documents.length}</span>
       </div>
@@ -115,9 +115,9 @@ export default function LeftPane({ notebookId }: Props) {
               title={isSelected ? `Deselect "${doc.filename}"` : `Select "${doc.filename}"`}
             >
               <span className={`source-check ${isSelected ? "source-check-on" : ""}`}>
-                {isSelected ? "✓" : ""}
+                {isSelected ? <span className="material-symbols-rounded" style={{fontSize: "14px", fontWeight: "bold"}}>check</span> : ""}
               </span>
-              <span className="doc-icon">{getIcon(doc.filename)}</span>
+              <span className="doc-icon material-symbols-rounded" style={{fontSize: "18px"}}>{getIcon(doc.filename)}</span>
               <span className="doc-name" title={doc.filename}>{doc.filename}</span>
               <button
                 className="doc-delete"
