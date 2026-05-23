@@ -1992,6 +1992,10 @@ code, pre, .font-mono { font-family: var(--font-mono, "Roboto Mono", monospace);
 
   .auth-card { padding: 28px 20px; margin: 12px; }
   .auth-title { font-size: 20px; }
+  /* iOS Safari anti-zoom: inputs must be ≥16px to prevent auto-zoom on focus */
+  .auth-form .form-group input { font-size: 16px; min-height: 44px; }
+  .auth-submit { min-height: 48px; font-size: 15px; }
+  .auth-tabs .auth-tab { min-height: 40px; }
 
   .sandbox-warning { font-size: 12px; padding: 8px 10px; }
 }
