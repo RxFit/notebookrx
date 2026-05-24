@@ -58,4 +58,24 @@ app.include_router(notes.router,      prefix="/api/notes",      tags=["notes"])
 
 @app.get("/health", tags=["system"])
 async def health():
-    return {"status": "ok", "service": "notebooklm-clone-api"}
+    status = {"status": "ok"}
+    # Check DB connectivity
+    try:
+        from db.database import AsyncSessionLocal
+        from sqlalchemy import text
+        async with AsyncSessionLocal() as db:
+            await db.execute(text("SELECT 1"))
+    except Exception:
+        status["status"] = "degraded"
+        status["db"] = "unreachable"
+    # Check Redis connectivity
+    try:
+        import redis.asyncio as aioredis
+        r = aioredis.from_url(settings.REDIS_URL, socket_connect_timeout=2)
+        await r.ping()
+        await r.close()
+    except Exception:
+        if status["status"] == "ok":
+            status["status"] = "degraded"
+        status["redis"] = "unreachable"
+    return status

@@ -204,7 +204,10 @@ async def chat(
         "retrieval": RETRIEVAL_SYSTEM_PROMPT,
     }[intent]
 
-    effective_prompt = custom_system_prompt if custom_system_prompt else system_prompt
+    # Custom prompt is additive — never replaces the safety-enforcing base prompt
+    effective_prompt = system_prompt
+    if custom_system_prompt:
+        effective_prompt = f"{system_prompt}\n\nADDITIONAL INSTRUCTIONS FROM USER:\n{custom_system_prompt}"
     prompt = f"{effective_prompt}\n\nSOURCE CHUNKS:\n{context_str}\n\nUSER REQUEST: {req.query}{lang_suffix}"
 
     response = await asyncio.to_thread(
@@ -271,18 +274,29 @@ async def chat(
 @router.get("/history", response_model=list[ChatHistoryItem])
 async def get_chat_history(
     notebook_id: str = Query(...),
+    limit: int = Query(100, ge=1, le=500),
+    before: str | None = Query(None, description="ISO timestamp cursor — return messages before this time"),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Retrieve persisted chat history for a notebook, ordered chronologically."""
-    result = await db.execute(
+    """Retrieve persisted chat history for a notebook, ordered chronologically (paginated)."""
+    query = (
         select(ChatMessageModel)
         .where(
             ChatMessageModel.notebook_id == notebook_id,
             ChatMessageModel.user_id == current_user.id,
         )
-        .order_by(ChatMessageModel.created_at.asc())
     )
+    if before:
+        from datetime import datetime
+        try:
+            before_dt = datetime.fromisoformat(before)
+            query = query.where(ChatMessageModel.created_at < before_dt)
+        except ValueError:
+            pass  # Ignore invalid cursor
+    query = query.order_by(ChatMessageModel.created_at.asc()).limit(limit)
+
+    result = await db.execute(query)
     rows = result.scalars().all()
 
     items: list[ChatHistoryItem] = []
