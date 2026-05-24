@@ -103,16 +103,20 @@ export default function AddSourcesModal({ notebookId, onClose, onAdded }: Props)
     for (const file of Array.from(files)) {
       const formData = new FormData();
       formData.append("file", file);
+      formData.append("notebook_id", notebookId);
       try {
-        const res = await fetch(`${BACKEND}/api/notebooks/${notebookId}/ingest/upload`, {
+        const res = await fetch(`${BACKEND}/api/ingest/upload`, {
           method: "POST",
           headers: { Authorization: `Bearer ${token}` },
           body: formData,
         });
-        if (!res.ok) throw new Error("Upload failed");
+        if (!res.ok) {
+          const d = await res.json().catch(() => ({}));
+          throw new Error((d as { detail?: string }).detail || "Upload failed");
+        }
         successCount++;
-      } catch {
-        setMessage({ text: `Failed to upload ${file.name}`, type: "error" });
+      } catch (e: unknown) {
+        setMessage({ text: `Failed to upload ${file.name}: ${(e as Error).message}`, type: "error" });
       }
     }
     if (successCount > 0) {
@@ -127,11 +131,12 @@ export default function AddSourcesModal({ notebookId, onClose, onAdded }: Props)
     if (!url.trim()) return;
     setLoading(true); setMessage(null);
     const isYoutube = activeTab === "youtube";
+    const endpoint = isYoutube ? "youtube" : "url";
     try {
-      const res = await fetch(`${BACKEND}/api/notebooks/${notebookId}/ingest/${isYoutube ? "youtube" : "url"}`, {
+      const res = await fetch(`${BACKEND}/api/ingest/${endpoint}`, {
         method: "POST",
         headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ url: url.trim() }),
+        body: JSON.stringify({ url: url.trim(), notebook_id: notebookId }),
       });
       if (!res.ok) {
         const d = await res.json().catch(() => ({}));
@@ -150,12 +155,15 @@ export default function AddSourcesModal({ notebookId, onClose, onAdded }: Props)
     if (!text.trim()) return;
     setLoading(true); setMessage(null);
     try {
-      const res = await fetch(`${BACKEND}/api/notebooks/${notebookId}/ingest/text`, {
+      const res = await fetch(`${BACKEND}/api/ingest/text`, {
         method: "POST",
         headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ content: text.trim(), title: title.trim() || "Pasted Text" }),
+        body: JSON.stringify({ content: text.trim(), title: title.trim() || "Pasted Text", notebook_id: notebookId }),
       });
-      if (!res.ok) throw new Error("Text ingestion failed");
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        throw new Error((d as { detail?: string }).detail || "Text ingestion failed");
+      }
       setMessage({ text: "Text added — indexing in background…", type: "success" });
       setText(""); setTitle("");
       onAdded();
@@ -175,23 +183,30 @@ export default function AddSourcesModal({ notebookId, onClose, onAdded }: Props)
     if (selected.size === 0) return;
     setLoading(true); setMessage(null);
     let ok = 0;
+    const errors: string[] = [];
     for (const fileId of Array.from(selected)) {
       try {
-        const res = await fetch(`${BACKEND}/api/notebooks/${notebookId}/ingest/drive`, {
+        const res = await fetch(`${BACKEND}/api/ingest/drive`, {
           method: "POST",
           headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-          body: JSON.stringify({ file_id: fileId }),
+          body: JSON.stringify({ file_id: fileId, notebook_id: notebookId }),
         });
-        if (!res.ok) throw new Error();
-        ok++;
-      } catch { /* skip failed */ }
+        if (!res.ok) {
+          const d = await res.json().catch(() => ({}));
+          errors.push((d as { detail?: string }).detail || "Import failed");
+        } else {
+          ok++;
+        }
+      } catch (e: unknown) {
+        errors.push((e as Error).message);
+      }
     }
     if (ok > 0) {
       setMessage({ text: `${ok} Drive file(s) added — indexing in background…`, type: "success" });
       setSelected(new Set());
       onAdded();
     } else {
-      setMessage({ text: "Drive import failed. Try again.", type: "error" });
+      setMessage({ text: errors[0] || "Drive import failed. Try again.", type: "error" });
     }
     setLoading(false);
   };
@@ -262,7 +277,7 @@ export default function AddSourcesModal({ notebookId, onClose, onAdded }: Props)
           {/* YouTube */}
           {activeTab === "youtube" && (
             <>
-              <p className="modal-hint">Paste a YouTube video URL to ingest the transcript.</p>
+              <p className="modal-hint">Paste a YouTube video URL to ingest the transcript. Works for videos with captions enabled.</p>
               <input
                 id="youtube-input" className="modal-input"
                 placeholder="https://www.youtube.com/watch?v=..."
@@ -270,8 +285,11 @@ export default function AddSourcesModal({ notebookId, onClose, onAdded }: Props)
                 onKeyDown={(e) => e.key === "Enter" && handleUrl()}
               />
               <button className="action-btn" onClick={handleUrl} disabled={loading || !url.trim()}>
-                {loading ? "Adding…" : "Add YouTube Video"}
+                {loading ? "Fetching transcript…" : "Add YouTube Video"}
               </button>
+              <p className="modal-hint" style={{ fontSize: 11, marginTop: 6, opacity: 0.7 }}>
+                ⚠ Caption-less or private videos will show an error — use &ldquo;Paste Text&rdquo; as a fallback.
+              </p>
             </>
           )}
 
@@ -286,11 +304,11 @@ export default function AddSourcesModal({ notebookId, onClose, onAdded }: Props)
             >
               <span className="material-symbols-rounded upload-icon" style={{ fontSize: 36 }}>upload_file</span>
               <p className="upload-text">Drag &amp; drop files here, or click to browse</p>
-              <p className="upload-hint">PDF, TXT, MD, JSON supported</p>
+              <p className="upload-hint">PDF · DOCX · PPTX · TXT · MD · JSON · JPG · PNG · MP3 · M4A</p>
               {loading && <p className="upload-progress">Uploading…</p>}
               <input
                 ref={fileInputRef} type="file" multiple hidden
-                accept=".pdf,.txt,.md,.json"
+                accept=".pdf,.docx,.pptx,.txt,.md,.json,.jpg,.jpeg,.png,.gif,.webp,.mp3,.m4a,.wav,.ogg,.flac"
                 onChange={(e) => handleUpload(e.target.files)}
               />
             </div>
