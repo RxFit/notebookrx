@@ -1,7 +1,7 @@
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from db.database import get_db
 from db.models import Document, DocumentChunk, User
 from config import settings
@@ -21,16 +21,23 @@ MAX_BYTES = settings.MAX_FILE_SIZE_MB * 1024 * 1024
 
 class UrlRequest(BaseModel):
     url: str
-    notebook_id: Optional[str] = None
+    notebook_id: str   # P1: required — prevents orphan documents
 
 class YoutubeRequest(BaseModel):
     url: str
-    notebook_id: Optional[str] = None
+    notebook_id: str   # P1: required — prevents orphan documents
 
 class TextRequest(BaseModel):
     content: str
     title: Optional[str] = "Pasted Text"
-    notebook_id: Optional[str] = None
+    notebook_id: str   # P1: required — prevents orphan documents
+
+    @field_validator("content")
+    @classmethod
+    def content_not_empty(cls, v: str) -> str:
+        if not v.strip():
+            raise ValueError("Content cannot be empty")
+        return v
 
 
 # ── Core helpers ───────────────────────────────────────────────────────────
@@ -277,6 +284,14 @@ async def ingest_url(
     if not raw_text.strip():
         raise HTTPException(422, "Page returned no readable content")
 
+    # Reject pages that returned suspiciously little content (likely 404 error pages)
+    if len(raw_text.strip()) < 200:
+        raise HTTPException(
+            422,
+            "The page returned very little content — it may be a 404 error page, "
+            "a login wall, or a redirect. Please verify the URL is publicly accessible."
+        )
+
     safe_name = re.sub(r"[^\w\-.]", "_", url.split("//")[-1])[:80]
     filename = f"web:{safe_name}"
     return await _ingest_raw(filename, raw_text, current_user.id, req.notebook_id, db)
@@ -288,53 +303,22 @@ async def ingest_youtube(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Extract a YouTube video transcript and ingest it. Accepts JSON body."""
-    youtube_url = req.url.strip()
+    """
+    YouTube transcript ingestion.
 
-    video_id_match = re.search(
-        r"(?:v=|youtu\.be/|/embed/|/shorts/)([A-Za-z0-9_\-]{11})", youtube_url
+    STATUS: Temporarily unavailable in production.
+    Railway cloud IPs are blocked by YouTube's anti-bot layer.
+    Option A (proxy vendor) is under evaluation for a future sprint.
+    Option C (honest disable) is active until a reliable solution is in place.
+    """
+    raise HTTPException(
+        503,
+        "YouTube import is temporarily unavailable. "
+        "Our servers are currently blocked by YouTube's access controls. "
+        "We're working on a fix. In the meantime, you can paste the transcript "
+        "manually using the 'Paste Text' option."
     )
-    if not video_id_match:
-        raise HTTPException(400, "Could not extract video ID — paste a full YouTube URL")
-    video_id = video_id_match.group(1)
 
-    try:
-        from youtube_transcript_api import YouTubeTranscriptApi, CouldNotRetrieveTranscript
-
-        ytt_api = YouTubeTranscriptApi()
-        # Try English first, fall back to any available language
-        try:
-            transcript = ytt_api.fetch(video_id, languages=["en"])
-        except Exception:
-            transcript = ytt_api.fetch(video_id)
-
-        raw_text = " ".join(entry.text for entry in transcript)
-
-    except CouldNotRetrieveTranscript as e:
-        err = str(e).lower()
-        if "disabled" in err:
-            raise HTTPException(
-                403,
-                "Captions are disabled for this video. "
-                "Try 'Paste Text' to manually add the transcript.",
-            )
-        raise HTTPException(
-            404,
-            "No captions found for this video. YouTube ingestion requires videos with captions enabled. "
-            "Try 'Paste Text' to manually add the transcript.",
-        )
-    except Exception as e:
-        err = str(e)
-        if "429" in err or "too many" in err.lower() or "blocked" in err.lower():
-            raise HTTPException(
-                429,
-                "YouTube is temporarily blocking transcript access from this server. "
-                "Please try again in a few minutes, or paste the transcript manually using 'Paste Text'.",
-            )
-        raise HTTPException(400, f"Failed to fetch transcript: {err}")
-
-    filename = f"youtube:{video_id}"
-    return await _ingest_raw(filename, raw_text, current_user.id, req.notebook_id, db)
 
 
 @router.get("/documents")

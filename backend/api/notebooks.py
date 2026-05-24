@@ -1,10 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, or_
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from typing import Optional
 from datetime import datetime
-import uuid
+import uuid, re
 
 from db.database import get_db
 from db.models import Notebook, Document, Note
@@ -13,15 +13,36 @@ from auth.jwt_handler import get_current_user
 router = APIRouter()
 
 
+_HTML_TAG_RE = re.compile(r"<[^>]+>")
+
+
+def _sanitize_title(v: str, max_len: int = 255, default: str = "Untitled") -> str:
+    """Strip HTML tags and enforce max length on user-supplied title fields."""
+    cleaned = _HTML_TAG_RE.sub("", v).strip()
+    return (cleaned or default)[:max_len]
+
+
 class NotebookCreate(BaseModel):
     title: str = "Untitled notebook"
     emoji: str = "📓"
+
+    @field_validator("title")
+    @classmethod
+    def sanitize_title(cls, v: str) -> str:
+        return _sanitize_title(v, default="Untitled notebook")
 
 
 class NotebookUpdate(BaseModel):
     title: Optional[str] = None
     emoji: Optional[str] = None
     system_prompt: Optional[str] = None  # P1 #12
+
+    @field_validator("title")
+    @classmethod
+    def sanitize_title(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return v
+        return _sanitize_title(v, default="Untitled notebook")
 
 
 class NotebookOut(BaseModel):
