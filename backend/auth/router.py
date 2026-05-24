@@ -1,4 +1,4 @@
-﻿"""
+"""
 Auth router — /auth/register, /auth/login, /auth/me
 """
 import uuid
@@ -55,6 +55,23 @@ class MeResponse(BaseModel):
     user_id: str
     email: str
     display_name: str
+    output_language: str
+
+
+class UpdateMeRequest(BaseModel):
+    display_name: str | None = None
+    output_language: str | None = None
+
+    @field_validator("output_language")
+    @classmethod
+    def validate_language(cls, v: str | None) -> str | None:
+        if v is None:
+            return v
+        # Basic ISO 639-1 / BCP-47 format check (2-5 char codes like en, fr, zh-CN)
+        import re
+        if not re.match(r'^[a-zA-Z]{2,3}(-[a-zA-Z]{2,4})?$', v):
+            raise ValueError("output_language must be a valid BCP-47 language code (e.g. 'en', 'fr', 'zh-CN')")
+        return v.lower()
 
 
 # ── Endpoints ─────────────────────────────────────────────────────────────────
@@ -114,4 +131,29 @@ async def me(current_user: User = Depends(get_current_user)):
         user_id=current_user.id,
         email=current_user.email,
         display_name=current_user.display_name,
+        output_language=current_user.output_language,
+    )
+
+
+@router.patch("/me", response_model=MeResponse)
+async def update_me(
+    req: UpdateMeRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Update profile fields. Only provided fields are changed (partial update)."""
+    if req.display_name is not None:
+        current_user.display_name = req.display_name.strip() or current_user.display_name
+    if req.output_language is not None:
+        current_user.output_language = req.output_language
+
+    db.add(current_user)
+    await db.commit()
+    await db.refresh(current_user)
+
+    return MeResponse(
+        user_id=current_user.id,
+        email=current_user.email,
+        display_name=current_user.display_name,
+        output_language=current_user.output_language,
     )
