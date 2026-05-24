@@ -10,13 +10,14 @@ from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from db.database import get_db
-from db.models import User, Document, DocumentChunk, Notebook
+from db.models import User, Document, Notebook
 from auth.jwt_handler import get_current_user
 from config import settings
 
 router = APIRouter(prefix="/drive", tags=["drive"])
 
-# ── Lazy import of Google libs (not installed in all envs) ───────────────────
+
+# ── Lazy import of Google libs (not installed in all envs) ────────────────
 
 def _get_drive_service(refresh_token: str):
     """Build an authenticated Drive service from a user's refresh token."""
@@ -40,14 +41,14 @@ def _get_drive_service(refresh_token: str):
     return build("drive", "v3", credentials=creds, cache_discovery=False)
 
 
-# ── Schemas ──────────────────────────────────────────────────────────────────
+# ── Schemas ───────────────────────────────────────────────────────────────
 
 class DriveFile(BaseModel):
-    id:        str
-    name:      str
-    mimeType:  str
+    id:           str
+    name:         str
+    mimeType:     str
     modifiedTime: str | None = None
-    size:      str | None = None
+    size:         str | None = None
 
 
 class IngestDriveRequest(BaseModel):
@@ -55,14 +56,14 @@ class IngestDriveRequest(BaseModel):
     notebook_id: str
 
 
-# ── Endpoints ─────────────────────────────────────────────────────────────────
+# ── Endpoints ─────────────────────────────────────────────────────────────
 
-@router.get("/list", response_model=list[DriveFile])
+@router.get("/list", response_model=dict)
 async def list_drive_files(
     folder_id: str | None = Query(None, description="Drive folder ID; omit for root"),
     current_user: User = Depends(get_current_user),
 ):
-    """List the user's Drive files (PDFs, Docs, plain text) available for ingestion."""
+    """List the user's Drive files available for ingestion."""
     if not current_user.google_refresh_token:
         raise HTTPException(
             status_code=403,
@@ -71,10 +72,13 @@ async def list_drive_files(
 
     service = _get_drive_service(current_user.google_refresh_token)
 
+    # Include Google Docs, PDFs, plain text, DOCX, PPTX
     query_parts = [
         "mimeType='application/pdf'",
         "mimeType='application/vnd.google-apps.document'",
         "mimeType='text/plain'",
+        "mimeType='application/vnd.openxmlformats-officedocument.wordprocessingml.document'",
+        "mimeType='application/vnd.openxmlformats-officedocument.presentationml.presentation'",
     ]
     q = f"({' or '.join(query_parts)}) and trashed=false"
     if folder_id:
@@ -87,7 +91,7 @@ async def list_drive_files(
         orderBy="modifiedTime desc",
     ).execute()
 
-    return [DriveFile(**f) for f in results.get("files", [])]
+    return {"files": results.get("files", [])}
 
 
 @router.post("", status_code=202)
@@ -125,14 +129,13 @@ async def ingest_drive_file(
     filename = meta["name"]
     mime     = meta["mimeType"]
 
-    # Download file bytes — export Google Docs as PDF
+    # Download / export file bytes
     try:
         if mime == "application/vnd.google-apps.document":
-            req_obj = service.files().export_media(
-                fileId=req.file_id, mimeType="application/pdf"
-            )
-            filename = filename + ".pdf"
-            mime     = "application/pdf"
+            # Export Google Docs as plain text (not PDF — simpler and preserves content)
+            req_obj  = service.files().export_media(fileId=req.file_id, mimeType="text/plain")
+            filename = filename + ".txt"
+            mime     = "text/plain"
         else:
             req_obj = service.files().get_media(fileId=req.file_id)
 
@@ -146,34 +149,21 @@ async def ingest_drive_file(
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Failed to download Drive file: {e}")
 
-    # Create Document record with "processing" status
-    doc_id = str(uuid.uuid4())
-    document = Document(
-        id          = doc_id,
-        filename    = filename,
-        user_id     = current_user.id,
-        notebook_id = req.notebook_id,
-        status      = "processing",
-    )
-    db.add(document)
-    await db.commit()
-
-    # Reuse the existing ingestion pipeline (chunking + embedding)
-    # Import here to avoid circular dependency
+    # Dispatch to the shared file-bytes pipeline
     from api.ingest import _process_file_bytes
     try:
-        await _process_file_bytes(
+        result = await _process_file_bytes(
             file_bytes=file_bytes,
             filename=filename,
             mime_type=mime,
-            document_id=doc_id,
+            document_id=str(uuid.uuid4()),
             user_id=current_user.id,
             db=db,
+            notebook_id=req.notebook_id,
         )
+    except HTTPException:
+        raise
     except Exception as e:
-        # Mark failed so the UI shows the error badge
-        document.status = "failed"
-        await db.commit()
         raise HTTPException(status_code=500, detail=f"Ingestion failed: {e}")
 
-    return {"document_id": doc_id, "filename": filename, "status": "processing"}
+    return {"document_id": result["document_id"], "filename": filename, "status": "ready"}
