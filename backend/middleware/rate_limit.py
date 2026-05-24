@@ -1,7 +1,9 @@
-﻿"""
+"""
 Rate-limiting middleware using Redis sliding window algorithm.
 
 Limits:
+  /auth/login          -> 10 requests per IP per minute  (brute-force protection)
+  /auth/register       -> 10 requests per IP per minute  (brute-force protection)
   /api/ingest/         -> 50 uploads per user per hour
   /api/chat/           -> 120 requests per user per minute
   /api/media/audio     -> 50 jobs per user per hour
@@ -19,7 +21,10 @@ import time, logging, jwt, os
 logger = logging.getLogger(__name__)
 
 # (path_prefix, limit, window_seconds, key_type)
+# Auth endpoints use IP-based limiting to block brute-force before JWT is issued
 RATE_RULES = [
+    ("/auth/login",        10,    60, "ip"),   # P0: brute-force protection
+    ("/auth/register",     10,    60, "ip"),   # P0: registration spam protection
     ("/api/ingest/",       50,  3600, "user"),
     ("/api/chat/",        120,    60, "user"),
     ("/api/media/audio",   50,  3600, "user"),
@@ -32,8 +37,8 @@ GLOBAL_LIMIT, GLOBAL_WINDOW = 200, 60
 # Paths completely exempt from rate limiting
 EXEMPT_PREFIXES = (
     "/health", "/docs", "/redoc", "/openapi.json",
-    "/auth/",
     "/api/media/jobs/",   # job status polling — lightweight, must not be throttled
+    # NOTE: /auth/ is intentionally NOT exempt — login/register are rate-limited per IP
 )
 
 

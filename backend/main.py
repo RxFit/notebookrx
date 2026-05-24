@@ -5,6 +5,7 @@ from api import ingest, chat, media, notebooks, notes, google_auth, ws, drive
 from auth import router as auth_router
 from db.database import init_db
 from middleware.rate_limit import RateLimitMiddleware
+from middleware.security_headers import SecurityHeadersMiddleware
 from config import settings
 import os
 
@@ -32,6 +33,9 @@ app.add_middleware(
     allow_headers=["*"],
     expose_headers=["X-RateLimit-Limit", "X-RateLimit-Remaining", "X-RateLimit-Window", "Retry-After"],
 )
+
+# Security headers on every response (P1 — audit RXF-24/RXF-36)
+app.add_middleware(SecurityHeadersMiddleware)
 
 app.add_middleware(RateLimitMiddleware, redis_url=settings.REDIS_URL)
 
