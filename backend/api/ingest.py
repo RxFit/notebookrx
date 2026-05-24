@@ -1,4 +1,4 @@
-from fastapi import APIRouter, UploadFile, File, HTTPException, Depends
+from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text
 from pydantic import BaseModel
@@ -209,7 +209,7 @@ async def _process_file_bytes(
 @router.post("/upload")
 async def ingest_upload(
     file: UploadFile = File(...),
-    notebook_id: Optional[str] = None,
+    notebook_id: Optional[str] = Form(None),   # Form(None) required for multipart binding
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):

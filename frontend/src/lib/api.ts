@@ -101,29 +101,29 @@ export const ApiService = {
     const form = new FormData();
     form.append("file", file);
     if (notebookId) form.append("notebook_id", notebookId);
-    const { data } = await api.post("/api/ingest/", form);
+    const { data } = await api.post("/api/ingest/upload", form);
     return data;
   },
   async uploadText(title: string, content: string, notebookId?: string): Promise<IngestResponse> {
-    const form = new FormData();
-    form.append("title", title);
-    form.append("content", content);
-    if (notebookId) form.append("notebook_id", notebookId);
-    const { data } = await api.post("/api/ingest/text", form);
+    const { data } = await api.post("/api/ingest/text", {
+      title,
+      content,
+      ...(notebookId ? { notebook_id: notebookId } : {}),
+    });
     return data;
   },
   async ingestUrl(url: string, notebookId?: string): Promise<IngestResponse> {
-    const form = new FormData();
-    form.append("url", url);
-    if (notebookId) form.append("notebook_id", notebookId);
-    const { data } = await api.post("/api/ingest/url", form);
+    const { data } = await api.post("/api/ingest/url", {
+      url,
+      ...(notebookId ? { notebook_id: notebookId } : {}),
+    });
     return data;
   },
   async ingestYoutube(youtubeUrl: string, notebookId?: string): Promise<IngestResponse> {
-    const form = new FormData();
-    form.append("youtube_url", youtubeUrl);
-    if (notebookId) form.append("notebook_id", notebookId);
-    const { data } = await api.post("/api/ingest/youtube", form);
+    const { data } = await api.post("/api/ingest/youtube", {
+      url: youtubeUrl,                                     // backend field is 'url', not 'youtube_url'
+      ...(notebookId ? { notebook_id: notebookId } : {}),
+    });
     return data;
   },
   async deleteDocument(id: string): Promise<void> {
