@@ -1,4 +1,4 @@
-﻿from fastapi import APIRouter, HTTPException, BackgroundTasks, Depends
+from fastapi import APIRouter, HTTPException, BackgroundTasks, Depends
 from fastapi.responses import StreamingResponse, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, text
@@ -52,14 +52,16 @@ async def generate_diagram(
     if not req.selected_document_ids:
         raise HTTPException(400, "No documents selected")
     context = await fetch_context(req.selected_document_ids, current_user.id, db, limit=20)
-    resp = client.models.generate_content(
-        model=settings.CHAT_MODEL,
-        contents=(
-            "Based ONLY on this content, generate a valid Mermaid.js diagram "
-            "(flowchart LR or sequence). Return ONLY raw Mermaid syntax - no fences.\n\n"
-            f"Content:\n{context}\n\nUser request: {req.prompt or 'summarise key concepts'}"
-        ),
-        config=types.GenerateContentConfig(temperature=0.2),
+    resp = await asyncio.to_thread(
+        lambda: client.models.generate_content(
+            model=settings.CHAT_MODEL,
+            contents=(
+                "Based ONLY on this content, generate a valid Mermaid.js diagram "
+                "(flowchart LR or sequence). Return ONLY raw Mermaid syntax - no fences.\n\n"
+                f"Content:\n{context}\n\nUser request: {req.prompt or 'summarise key concepts'}"
+            ),
+            config=types.GenerateContentConfig(temperature=0.2),
+        )
     )
     raw = re.sub(r"```(?:mermaid)?\n?", "", resp.text)
     raw = re.sub(r"```", "", raw).strip()
@@ -77,7 +79,7 @@ async def generate_audio(
         raise HTTPException(400, "No documents selected")
     context = await fetch_context(req.selected_document_ids, current_user.id, db, limit=30)
     job_id = str(uuid.uuid4())
-    await job_store.create(job_id, {"status": "queued", "progress": 0, "url": None, "error": None, "script": None})
+    await job_store.create(job_id, {"status": "queued", "progress": 0, "url": None, "error": None, "script": None, "user_id": current_user.id})
     background_tasks.add_task(generate_audio_job, job_id, context, settings)
     return {"job_id": job_id, "status": "queued"}
 
@@ -86,6 +88,8 @@ async def serve_audio(job_id: str, current_user: User = Depends(get_current_user
     job = await job_store.get(job_id)
     if not job or job.get("status") != "done":
         raise HTTPException(404, "Audio not ready or job not found")
+    if job.get("user_id") and job["user_id"] != current_user.id:
+        raise HTTPException(403, "Access denied")
     audio_b64 = job.get("audio_b64")
     if not audio_b64:
         raise HTTPException(404, "Audio data not available")
@@ -107,7 +111,7 @@ async def generate_image(
         raise HTTPException(400, "No documents selected")
     context = await fetch_context(req.selected_document_ids, current_user.id, db, limit=20)
     job_id = str(uuid.uuid4())
-    await job_store.create(job_id, {"status": "queued", "progress": 0, "url": None, "error": None})
+    await job_store.create(job_id, {"status": "queued", "progress": 0, "url": None, "error": None, "user_id": current_user.id})
     background_tasks.add_task(generate_image_job, job_id, context, req.prompt or "visualize key concepts", settings)
     return {"job_id": job_id, "status": "queued"}
 
@@ -116,6 +120,8 @@ async def serve_image(job_id: str, current_user: User = Depends(get_current_user
     job = await job_store.get(job_id)
     if not job or job.get("status") != "done":
         raise HTTPException(404, "Image not ready or job not found")
+    if job.get("user_id") and job["user_id"] != current_user.id:
+        raise HTTPException(403, "Access denied")
     image_b64 = job.get("image_b64")
     if not image_b64:
         raise HTTPException(404, "Image data not available")
@@ -131,10 +137,17 @@ async def get_job_status(job_id: str, current_user: User = Depends(get_current_u
     job = await job_store.get(job_id)
     if job is None:
         raise HTTPException(404, "Job not found")
+    if job.get("user_id") and job["user_id"] != current_user.id:
+        raise HTTPException(403, "Access denied")
     return job
 
 @router.get("/jobs/{job_id}/stream")
 async def stream_job_status(job_id: str, current_user: User = Depends(get_current_user)):
+    # IDOR check before streaming
+    initial_job = await job_store.get(job_id)
+    if initial_job and initial_job.get("user_id") and initial_job["user_id"] != current_user.id:
+        raise HTTPException(403, "Access denied")
+
     async def event_generator():
         misses = 0
         while True:
@@ -175,16 +188,18 @@ async def summarize_sources(
     if not req.selected_document_ids:
         raise HTTPException(400, "No documents selected")
     context = await fetch_context(req.selected_document_ids, current_user.id, db, limit=30)
-    resp = client.models.generate_content(
-        model=settings.CHAT_MODEL,
-        contents=(
-            "You are a professional research summarizer. Read the following source material "
-            "and produce a concise executive summary of 3-5 paragraphs. "
-            "Cover the main ideas, key arguments, and significant findings. "
-            "Write in clear, accessible language. Do NOT use bullet points.\n\n"
-            f"SOURCE MATERIAL:\n{context}"
-        ),
-        config=types.GenerateContentConfig(temperature=0.0),
+    resp = await asyncio.to_thread(
+        lambda: client.models.generate_content(
+            model=settings.CHAT_MODEL,
+            contents=(
+                "You are a professional research summarizer. Read the following source material "
+                "and produce a concise executive summary of 3-5 paragraphs. "
+                "Cover the main ideas, key arguments, and significant findings. "
+                "Write in clear, accessible language. Do NOT use bullet points.\n\n"
+                f"SOURCE MATERIAL:\n{context}"
+            ),
+            config=types.GenerateContentConfig(temperature=0.0),
+        )
     )
     return SummarizeResponse(summary=resp.text.strip())
 
@@ -224,13 +239,15 @@ async def generate_study_guide(
         "Include 3-5 sections covering key concepts, and 5-8 practice questions with answers.\n\n"
         f"SOURCE MATERIAL:\n{context}"
     )
-    resp = client.models.generate_content(
-        model=settings.CHAT_MODEL,
-        contents=prompt,
-        config=types.GenerateContentConfig(
-            temperature=0.1,
-            response_mime_type="application/json",
-        ),
+    resp = await asyncio.to_thread(
+        lambda: client.models.generate_content(
+            model=settings.CHAT_MODEL,
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                temperature=0.1,
+                response_mime_type="application/json",
+            ),
+        )
     )
     try:
         data = json.loads(resp.text)

@@ -23,6 +23,21 @@ async def migrate():
         ))
         print("✅ Additive migrations applied (google_id, oauth_provider, avatar_url, google_refresh_token)")
 
+        # W3 — Performance indexes (audit findings CRIT-3, HIGH-7)
+        # HNSW vector index for cosine similarity search on document chunks
+        await conn.execute(sa.text("""
+            CREATE INDEX IF NOT EXISTS idx_chunks_embedding
+            ON document_chunks
+            USING hnsw (embedding vector_cosine_ops)
+            WITH (m = 16, ef_construction = 64)
+        """))
+        # B-tree index on document_id for chunk filtering in chat queries
+        await conn.execute(sa.text("""
+            CREATE INDEX IF NOT EXISTS idx_chunks_document_id
+            ON document_chunks (document_id)
+        """))
+        print("✅ Performance indexes applied (HNSW embedding, document_id)")
+
         # ── Full recreate (only run manually when schema needs reset) ──────────
         # Uncomment the block below ONLY when a full schema rebuild is required.
         # WARNING: this destroys all data.

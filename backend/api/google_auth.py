@@ -6,6 +6,7 @@ Scopes requested:
   openid email profile                — for SSO login (#24)
   https://www.googleapis.com/auth/drive.readonly  — for Drive ingestion (#25)
 """
+import secrets
 import uuid
 import httpx
 import urllib.parse
@@ -60,6 +61,7 @@ async def google_login(request: Request):
         )
 
     redirect_uri = _build_redirect_uri(request)
+    state = secrets.token_urlsafe(32)
     params = {
         "client_id":     settings.GOOGLE_CLIENT_ID,
         "redirect_uri":  redirect_uri,
@@ -67,9 +69,15 @@ async def google_login(request: Request):
         "scope":         SCOPES,
         "access_type":   "offline",   # request refresh_token for Drive
         "prompt":        "consent",   # force consent so we always get refresh_token
+        "state":         state,
     }
     url = GOOGLE_AUTH_URL + "?" + urllib.parse.urlencode(params)
-    return RedirectResponse(url)
+    response = RedirectResponse(url)
+    response.set_cookie(
+        "oauth_state", state,
+        httponly=True, secure=True, samesite="lax", max_age=300,
+    )
+    return response
 
 
 @router.get("/google/callback")
@@ -77,11 +85,17 @@ async def google_callback(
     request: Request,
     code: str | None = None,
     error: str | None = None,
+    state: str | None = None,
     db: AsyncSession = Depends(get_db),
 ):
     """Handle Google OAuth callback, upsert user, store refresh token, return JWT."""
     if error or not code:
         raise HTTPException(status_code=400, detail=f"Google OAuth error: {error or 'missing code'}")
+
+    # CSRF validation
+    expected_state = request.cookies.get("oauth_state")
+    if not state or state != expected_state:
+        raise HTTPException(status_code=400, detail="Invalid OAuth state — possible CSRF attack.")
 
     redirect_uri = _build_redirect_uri(request)
     frontend_url = getattr(settings, "FRONTEND_URL", "https://notebook.blue")

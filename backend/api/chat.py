@@ -8,7 +8,7 @@ from config import settings
 from auth.jwt_handler import get_current_user
 import google.genai as genai
 from google.genai import types
-import json, re, uuid
+import asyncio, json, re, uuid
 
 router = APIRouter()
 client = genai.Client(api_key=settings.GEMINI_API_KEY)
@@ -168,7 +168,7 @@ async def chat(
     temperature = max(0.0, min(1.0, temperature))  # clamp to [0, 1]
 
     # Embed query and retrieve top-k semantically similar chunks
-    embed_result = client.models.embed_content(model=settings.EMBEDDING_MODEL, contents=[req.query])
+    embed_result = await asyncio.to_thread(client.models.embed_content, model=settings.EMBEDDING_MODEL, contents=[req.query])
     query_vec = embed_result.embeddings[0].values
     vec_str = "[" + ",".join(str(v) for v in query_vec) + "]"
 
@@ -207,14 +207,16 @@ async def chat(
     effective_prompt = custom_system_prompt if custom_system_prompt else system_prompt
     prompt = f"{effective_prompt}\n\nSOURCE CHUNKS:\n{context_str}\n\nUSER REQUEST: {req.query}{lang_suffix}"
 
-    response = client.models.generate_content(
-        model=settings.CHAT_MODEL,
-        contents=prompt,
-        config=types.GenerateContentConfig(
-            temperature=temperature,
-            response_mime_type="application/json",
-            safety_settings=SAFETY_SETTINGS,
-        ),
+    response = await asyncio.to_thread(
+        lambda: client.models.generate_content(
+            model=settings.CHAT_MODEL,
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                temperature=temperature,
+                response_mime_type="application/json",
+                safety_settings=SAFETY_SETTINGS,
+            ),
+        )
     )
     try:
         parsed = json.loads(response.text)
