@@ -299,39 +299,33 @@ async def ingest_youtube(
     video_id = video_id_match.group(1)
 
     try:
-        from youtube_transcript_api import (
-            YouTubeTranscriptApi,
-            NoTranscriptFound,
-            VideoUnavailable,
-            TranscriptsDisabled,
-        )
-        # Try English first, then fall back to any available language
+        from youtube_transcript_api import YouTubeTranscriptApi, CouldNotRetrieveTranscript
+
+        ytt_api = YouTubeTranscriptApi()
+        # Try English first, fall back to any available language
         try:
-            transcript_list = YouTubeTranscriptApi.get_transcript(video_id, languages=["en"])
-        except NoTranscriptFound:
-            # Try any available transcript
-            transcript_list = YouTubeTranscriptApi.get_transcript(video_id)
+            transcript = ytt_api.fetch(video_id, languages=["en"])
+        except Exception:
+            transcript = ytt_api.fetch(video_id)
 
-        raw_text = " ".join(entry["text"] for entry in transcript_list)
+        raw_text = " ".join(entry.text for entry in transcript)
 
-    except NoTranscriptFound:
+    except CouldNotRetrieveTranscript as e:
+        err = str(e).lower()
+        if "disabled" in err:
+            raise HTTPException(
+                403,
+                "Captions are disabled for this video. "
+                "Try 'Paste Text' to manually add the transcript.",
+            )
         raise HTTPException(
             404,
             "No captions found for this video. YouTube ingestion requires videos with captions enabled. "
-            "Try enabling auto-generated captions on the video, or paste the transcript manually using 'Paste Text'.",
-        )
-    except TranscriptsDisabled:
-        raise HTTPException(
-            403,
-            "Captions are disabled for this video. "
             "Try 'Paste Text' to manually add the transcript.",
         )
-    except VideoUnavailable:
-        raise HTTPException(404, "Video is unavailable or private")
     except Exception as e:
         err = str(e)
-        # YouTube sometimes rate-limits transcript scraping from cloud IPs
-        if "429" in err or "Too Many Requests" in err or "blocked" in err.lower():
+        if "429" in err or "too many" in err.lower() or "blocked" in err.lower():
             raise HTTPException(
                 429,
                 "YouTube is temporarily blocking transcript access from this server. "
