@@ -8,7 +8,7 @@ from config import settings
 from auth.jwt_handler import get_current_user
 import google.genai as genai
 from google.genai import types
-import asyncio, json, re, uuid
+import json, re, uuid
 
 router = APIRouter()
 client = genai.Client(api_key=settings.GEMINI_API_KEY)
@@ -168,7 +168,7 @@ async def chat(
     temperature = max(0.0, min(1.0, temperature))  # clamp to [0, 1]
 
     # Embed query and retrieve top-k semantically similar chunks
-    embed_result = await asyncio.to_thread(client.models.embed_content, model=settings.EMBEDDING_MODEL, contents=[req.query])
+    embed_result = client.models.embed_content(model=settings.EMBEDDING_MODEL, contents=[req.query])
     query_vec = embed_result.embeddings[0].values
     vec_str = "[" + ",".join(str(v) for v in query_vec) + "]"
 
@@ -204,22 +204,17 @@ async def chat(
         "retrieval": RETRIEVAL_SYSTEM_PROMPT,
     }[intent]
 
-    # Custom prompt is additive — never replaces the safety-enforcing base prompt
-    effective_prompt = system_prompt
-    if custom_system_prompt:
-        effective_prompt = f"{system_prompt}\n\nADDITIONAL INSTRUCTIONS FROM USER:\n{custom_system_prompt}"
+    effective_prompt = custom_system_prompt if custom_system_prompt else system_prompt
     prompt = f"{effective_prompt}\n\nSOURCE CHUNKS:\n{context_str}\n\nUSER REQUEST: {req.query}{lang_suffix}"
 
-    response = await asyncio.to_thread(
-        lambda: client.models.generate_content(
-            model=settings.CHAT_MODEL,
-            contents=prompt,
-            config=types.GenerateContentConfig(
-                temperature=temperature,
-                response_mime_type="application/json",
-                safety_settings=SAFETY_SETTINGS,
-            ),
-        )
+    response = client.models.generate_content(
+        model=settings.CHAT_MODEL,
+        contents=prompt,
+        config=types.GenerateContentConfig(
+            temperature=temperature,
+            response_mime_type="application/json",
+            safety_settings=SAFETY_SETTINGS,
+        ),
     )
     try:
         parsed = json.loads(response.text)
@@ -274,29 +269,18 @@ async def chat(
 @router.get("/history", response_model=list[ChatHistoryItem])
 async def get_chat_history(
     notebook_id: str = Query(...),
-    limit: int = Query(100, ge=1, le=500),
-    before: str | None = Query(None, description="ISO timestamp cursor — return messages before this time"),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Retrieve persisted chat history for a notebook, ordered chronologically (paginated)."""
-    query = (
+    """Retrieve persisted chat history for a notebook, ordered chronologically."""
+    result = await db.execute(
         select(ChatMessageModel)
         .where(
             ChatMessageModel.notebook_id == notebook_id,
             ChatMessageModel.user_id == current_user.id,
         )
+        .order_by(ChatMessageModel.created_at.asc())
     )
-    if before:
-        from datetime import datetime
-        try:
-            before_dt = datetime.fromisoformat(before)
-            query = query.where(ChatMessageModel.created_at < before_dt)
-        except ValueError:
-            pass  # Ignore invalid cursor
-    query = query.order_by(ChatMessageModel.created_at.asc()).limit(limit)
-
-    result = await db.execute(query)
     rows = result.scalars().all()
 
     items: list[ChatHistoryItem] = []

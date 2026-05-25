@@ -9,9 +9,7 @@ from auth.jwt_handler import get_current_user
 import google.genai as genai
 import httpx
 import pypdf
-import asyncio, io, uuid, re
-import ipaddress, socket
-from urllib.parse import urlparse
+import io, uuid, re
 from typing import Optional
 
 router = APIRouter()
@@ -53,7 +51,7 @@ def chunk_text(raw: str, max_chars: int = 2000, overlap: int = 200) -> list[str]
 
 
 async def embed_texts(texts: list[str]) -> list[list[float]]:
-    result = await asyncio.to_thread(client.models.embed_content, model=settings.EMBEDDING_MODEL, contents=texts)
+    result = client.models.embed_content(model=settings.EMBEDDING_MODEL, contents=texts)
     return [e.values for e in result.embeddings]
 
 
@@ -251,25 +249,6 @@ async def ingest_text(
     return await _ingest_raw(filename, req.content, current_user.id, req.notebook_id, db)
 
 
-def _validate_url_not_internal(url: str):
-    """Block SSRF: reject URLs pointing to internal/private networks."""
-    parsed = urlparse(url)
-    hostname = parsed.hostname
-    if not hostname:
-        raise HTTPException(400, "Invalid URL")
-    blocked_hosts = {"localhost", "127.0.0.1", "[::1]", "0.0.0.0", "metadata.google.internal"}
-    if hostname in blocked_hosts:
-        raise HTTPException(400, "Internal URLs are not allowed")
-    try:
-        ip = ipaddress.ip_address(socket.gethostbyname(hostname))
-        if ip.is_private or ip.is_loopback or ip.is_link_local:
-            raise HTTPException(400, "Internal URLs are not allowed")
-    except (socket.gaierror, ValueError):
-        pass  # DNS resolution failed — allow Jina to handle it
-    if hostname == "169.254.169.254":
-        raise HTTPException(400, "Metadata endpoint access is not allowed")
-
-
 @router.post("/url")
 async def ingest_url(
     req: UrlRequest,
@@ -280,8 +259,6 @@ async def ingest_url(
     url = req.url.strip()
     if not url.startswith(("http://", "https://")):
         raise HTTPException(400, "URL must start with http:// or https://")
-
-    _validate_url_not_internal(url)
 
     # Jina Reader: converts any page (including JS-rendered) to clean markdown
     jina_url = f"https://r.jina.ai/{url}"

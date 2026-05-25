@@ -1,4 +1,4 @@
-# Python
+﻿# Python
 __pycache__/
 *.pyc
 .venv/
@@ -17,17 +17,3 @@ out/
 *.mp3
 *.mp4
 .vercel
-.DS_Store
-
-# Credentials / test files with secrets
-test_connections.py
-*.credentials
-*.key
-
-# Logs
-*.log
-
-# Coverage
-coverage/
-.coverage
-htmlcov/

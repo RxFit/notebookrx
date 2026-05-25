@@ -7,10 +7,7 @@ Broadcasts: { type: "presence", users: [{user_id, display_name, color}] }
 import json
 import asyncio
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query
-from sqlalchemy import select
 from auth.jwt_handler import decode_token
-from db.database import AsyncSessionLocal
-from db.models import Notebook
 from collections import defaultdict
 from typing import Any
 
@@ -65,18 +62,6 @@ async def notebook_ws(
     except Exception:
         await websocket.close(code=4001, reason="Invalid token")
         return
-
-    # Verify user owns this notebook before accepting the connection
-    async with AsyncSessionLocal() as db:
-        result = await db.execute(
-            select(Notebook.id).where(
-                Notebook.id == notebook_id,
-                Notebook.user_id == user_id,
-            )
-        )
-        if not result.scalar_one_or_none():
-            await websocket.close(code=4003, reason="Not authorized for this notebook")
-            return
 
     await websocket.accept()
 

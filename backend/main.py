@@ -1,5 +1,4 @@
 from fastapi import FastAPI
-import os
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from api import ingest, chat, media, notebooks, notes, google_auth, ws, drive
@@ -8,20 +7,14 @@ from db.database import init_db
 from middleware.rate_limit import RateLimitMiddleware
 from middleware.security_headers import SecurityHeadersMiddleware
 from config import settings
+import os
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await init_db()
     yield
 
-_is_prod = os.environ.get('RAILWAY_ENVIRONMENT') or not os.environ.get('DATABASE_URL', '').startswith('postgresql://localhost')
-_docs_url = None if _is_prod else '/docs'
-
-app = FastAPI(
-    title="NotebookRx API", version="1.0.0", lifespan=lifespan,
-    docs_url=_docs_url, redoc_url=None,
-    openapi_url='/openapi.json' if _docs_url else None,
-)
+app = FastAPI(title="NotebookLM Clone API", version="1.0.0", lifespan=lifespan)
 
 # Explicit allowed origins — do NOT use wildcard in production
 ALLOWED_ORIGINS = [
@@ -58,24 +51,4 @@ app.include_router(notes.router,      prefix="/api/notes",      tags=["notes"])
 
 @app.get("/health", tags=["system"])
 async def health():
-    status = {"status": "ok"}
-    # Check DB connectivity
-    try:
-        from db.database import AsyncSessionLocal
-        from sqlalchemy import text
-        async with AsyncSessionLocal() as db:
-            await db.execute(text("SELECT 1"))
-    except Exception:
-        status["status"] = "degraded"
-        status["db"] = "unreachable"
-    # Check Redis connectivity
-    try:
-        import redis.asyncio as aioredis
-        r = aioredis.from_url(settings.REDIS_URL, socket_connect_timeout=2)
-        await r.ping()
-        await r.close()
-    except Exception:
-        if status["status"] == "ok":
-            status["status"] = "degraded"
-        status["redis"] = "unreachable"
-    return status
+    return {"status": "ok", "service": "notebooklm-clone-api"}
