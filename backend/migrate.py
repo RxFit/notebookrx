@@ -17,11 +17,15 @@ async def migrate():
         await conn.execute(sa.text(
             "ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_url VARCHAR"
         ))
-        # W2 — Google Drive refresh token (#25)
+        # W2 â€” Google Drive refresh token (#25)
         await conn.execute(sa.text(
             "ALTER TABLE users ADD COLUMN IF NOT EXISTS google_refresh_token VARCHAR"
         ))
-        print("✅ Additive migrations applied (google_id, oauth_provider, avatar_url, google_refresh_token)")
+        # W3 â€” Output language (#15)
+        await conn.execute(sa.text(
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS output_language VARCHAR DEFAULT 'en' NOT NULL"
+        ))
+        print("âœ… Additive migrations applied (google_id, oauth_provider, avatar_url, google_refresh_token, output_language)")
 
         # ── Full recreate (only run manually when schema needs reset) ──────────
         # Uncomment the block below ONLY when a full schema rebuild is required.
