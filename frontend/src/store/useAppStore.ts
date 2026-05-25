@@ -109,7 +109,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         ? (window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark")
         : t;
       document.documentElement.setAttribute("data-theme", resolved);
-      localStorage.setItem("notebookrx_theme", t);
+      localStorage.setItem("notebook_blue_theme", t);
     }
   },
 

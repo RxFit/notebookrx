@@ -48,9 +48,12 @@ function AudioTab() {
         if (pollRef.current) clearInterval(pollRef.current);
       }
     }, 1500);
-    return () => { if (pollRef.current) clearInterval(pollRef.current); };
-  }, [polling, jobId]);
-
+    return () => {
+      if (pollRef.current) clearInterval(pollRef.current);
+      // Cleanup object URL on unmount to prevent memory leaks
+      if (audioUrl) URL.revokeObjectURL(audioUrl);
+    };
+  }, [polling, jobId, audioUrl]);
   return (
     <div className="tab-content">
       <h3 className="tab-section-title"><span className="material-symbols-rounded" style={{fontSize: "20px", verticalAlign: "middle"}}>mic</span> Podcast Generator</h3>
@@ -162,8 +165,12 @@ function ImageTab() {
         if (pollRef.current) clearInterval(pollRef.current);
       }
     }, 1500);
-    return () => { if (pollRef.current) clearInterval(pollRef.current); };
-  }, [polling, jobId]);
+    return () => {
+      if (pollRef.current) clearInterval(pollRef.current);
+      // Cleanup object URL on unmount
+      if (imageUrl) URL.revokeObjectURL(imageUrl);
+    };
+  }, [polling, jobId, imageUrl]);
 
   return (
     <div className="tab-content">

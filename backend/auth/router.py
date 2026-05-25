@@ -157,3 +157,7 @@ async def update_me(
         display_name=current_user.display_name,
         output_language=current_user.output_language,
     )
+
+class GoogleExchangeRequest(BaseModel):
+    code: str
+

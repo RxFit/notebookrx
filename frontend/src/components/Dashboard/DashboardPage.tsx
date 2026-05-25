@@ -35,44 +35,47 @@ const TEMPLATES = [
   },
 ];
 
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+
 export default function DashboardPage() {
   const { user } = useAuth();
-  const [notebooks, setNotebooks] = useState<Notebook[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+  
+  const { data: notebooks = [], isLoading: loading, error } = useQuery({
+    queryKey: ["notebooks"],
+    queryFn: NotebookService.list,
+  });
+
   const [showCreate, setShowCreate] = useState(false);
   const [filter, setFilter] = useState<"all" | "mine">("all");
   const [search, setSearch] = useState("");
   const [view, setView] = useState<"grid" | "list">("grid");
   const [sort, setSort] = useState<"recent" | "alpha">("recent");
-  const [creatingTemplate, setCreatingTemplate] = useState(false);
 
-  const load = useCallback(async () => {
-    try {
-      const data = await NotebookService.list();
-      setNotebooks(data);
-    } catch { /* handled by auth interceptor */ }
-    finally { setLoading(false); }
-  }, []);
+  const createMutation = useMutation({
+    mutationFn: ({ title, icon }: { title: string; icon: string }) => NotebookService.create(title, icon),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["notebooks"] });
+      setShowCreate(false);
+      toast.success("Notebook created!");
+    },
+    onError: () => toast.error("Failed to create notebook"),
+  });
 
-  useEffect(() => { load(); }, [load]);
-
-  const handleCreated = (nb: Notebook) => {
-    setNotebooks((prev) => [nb, ...prev]);
-    setShowCreate(false);
+  const handleCreated = () => {
+    // Handled by mutation now, but keeping prop for compatibility if needed
+    queryClient.invalidateQueries({ queryKey: ["notebooks"] });
   };
 
-  const handleDeleted = (id: string) => setNotebooks((prev) => prev.filter((n) => n.id !== id));
-  const handleRenamed = (nb: Notebook) => setNotebooks((prev) => prev.map((n) => n.id === nb.id ? nb : n));
+  const handleDeleted = () => queryClient.invalidateQueries({ queryKey: ["notebooks"] });
+  const handleRenamed = () => queryClient.invalidateQueries({ queryKey: ["notebooks"] });
 
   const handleTemplate = async (tpl: typeof TEMPLATES[0]) => {
-    setCreatingTemplate(true);
-    try {
-      const nb = await NotebookService.create(tpl.title, tpl.icon);
-      setNotebooks((prev) => [nb, ...prev]);
-    } catch { /* ignore */ } finally {
-      setCreatingTemplate(false);
-    }
+    createMutation.mutate({ title: tpl.title, icon: tpl.icon });
   };
+  
+  const creatingTemplate = createMutation.isPending;
 
   const filtered = notebooks
     .filter((nb) => {
