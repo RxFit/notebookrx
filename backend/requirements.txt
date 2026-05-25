@@ -2,7 +2,7 @@ fastapi==0.115.12
 uvicorn[standard]>=0.34
 python-multipart>=0.0.20
 pydantic>=2.11
-pydantic-settings>=2.9
+pydantic-settings>=2.14.1
 psycopg2-binary>=2.9
 sqlalchemy>=2.0
 asyncpg>=0.30
