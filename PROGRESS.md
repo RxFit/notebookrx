@@ -34,6 +34,15 @@
 - [x] #25 Google Drive integration — Drive list + ingest endpoints + file picker in AddSourcesModal
 - [x] #26 Real-time collaboration — WS presence server + useCollabPresence hook + PresenceAvatars UI
 
+## Phase 5 â€” Quality & UX (P2) [IN PROGRESS]
+- [x] #27 React Query migration (DashboardPage)
+- [x] #28 Sonner toast system integration
+- [x] #29 Theme key mismatch fix (notebook_blue_theme)
+- [x] #30 Object URL memory leak cleanup (Audio/Image tabs)
+- [ ] #31 Global Error Boundary
+- [ ] #32 React Query migration (LeftPane/RightPane)
+- [ ] #33 Wire feedback form to backend
+
 ## Architecture
 - **Frontend:** Next.js 16, Zustand, Tailwind CSS, Tiptap, DOMPurify
 - **Backend:** FastAPI 0.115.12, SQLAlchemy async, pgvector, Redis, Gemini 2.5 Flash
