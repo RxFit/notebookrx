@@ -230,8 +230,8 @@ export default function MiddlePane({ notebookId, systemPrompt }: Props) {
         {messages.length === 0 && (
           <div className="chat-empty">
             <div className="chat-empty-icon material-symbols-rounded" style={{ fontSize: "48px", color: "var(--text-muted)" }}>forum</div>
-            <h3>Ask anything about your sources</h3>
-            <p>{noSources ? "Add sources on the left to start chatting." : "Type a question below, or pick a starter:"}</p>
+            <h3>What do you want to know?</h3>
+            <p>{noSources ? "Add some sources on the left. They won\'t bite." : "Ask something. Anything. We\'re trained not to judge."}</p>
             {!noSources && (
               <div className="prompt-starters">
                 {STARTER_PROMPTS.map((p) => (
@@ -269,7 +269,7 @@ export default function MiddlePane({ notebookId, systemPrompt }: Props) {
       <div className="chat-input-area">
         {/* Only show source warning in ONE place (left pane handles the rest) */}
         {noSources && (
-          <div className="sandbox-warning"><span className="material-symbols-rounded" style={{ fontSize: "16px", verticalAlign: "middle" }}>warning</span> Add at least one source to enable chat</div>
+          <div className="sandbox-warning"><span className="material-symbols-rounded" style={{ fontSize: "16px", verticalAlign: "middle" }}>warning</span> Add a source first — we\'re conversational, not psychic</div>
         )}
 
         {/* Creativity slider */}

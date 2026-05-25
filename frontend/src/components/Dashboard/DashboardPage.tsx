@@ -7,10 +7,32 @@ import DashboardFilters from "./DashboardFilters";
 import CreateNotebookModal from "./CreateNotebookModal";
 import { useAuth } from "@/context/AuthContext";
 
+/* ─────────────────────────────────────────────────
+   Onboarding starter templates — functional + charming
+   Each creates a real notebook with a pre-set icon/title.
+   ───────────────────────────────────────────────── */
 const TEMPLATES = [
-  { icon: "analytics", title: "KPI Dashboard",   desc: "Analyze executive metrics and extract key findings" },
-  { icon: "summarize", title: "Executive Brief",    desc: "Summarize strategic alignments and action items" },
-  { icon: "biotech", title: "Biological Asset Mgt",      desc: "Turn clinical data into actionable insights" },
+  {
+    icon: "mic",
+    title: "The Podcast Drop",
+    tagline: "Generate a podcast nobody asked for (but everyone needs)",
+    desc: "Drop your sources. We'll argue about them in stereo.",
+    color: "hsl(212, 90%, 60%)",
+  },
+  {
+    icon: "travel_explore",
+    title: "The YouTube Rabbit Hole",
+    tagline: "Turn YouTube into a conversation",
+    desc: "Paste a URL. Watch it become something you can actually talk to.",
+    color: "hsl(183, 100%, 45%)",
+  },
+  {
+    icon: "forum",
+    title: "Your Sources, Alive",
+    tagline: "Your sources, but make them talk back",
+    desc: "Upload docs, PDFs, websites. Then interrogate them.",
+    color: "hsl(43, 85%, 68%)",
+  },
 ];
 
 export default function DashboardPage() {
@@ -64,7 +86,7 @@ export default function DashboardPage() {
     return (
       <div className="dash-loading">
         <span className="loading-spinner" />
-        <span>Loading notebooks…</span>
+        <span>Fetching your notebooks…</span>
       </div>
     );
   }
@@ -78,57 +100,98 @@ export default function DashboardPage() {
         sort={sort} setSort={setSort}
       />
 
-      <div className={view === "grid" ? "notebook-grid" : "notebook-list"}>
-        {/* Create New card */}
-        <button
-          id="create-notebook-card"
-          className="notebook-card notebook-card-new"
-          onClick={() => setShowCreate(true)}
-        >
-          <span className="new-notebook-plus">+</span>
-          <span className="new-notebook-label">New notebook</span>
-        </button>
-
-        {filtered.map((nb) => (
-          <NotebookCard
-            key={nb.id}
-            notebook={nb}
-            onDeleted={handleDeleted}
-            onRenamed={handleRenamed}
-          />
-        ))}
-      </div>
-
-      {/* First-run onboarding: show when there are no notebooks at all */}
+      {/* ── First-run onboarding ── */}
       {notebooks.length === 0 && !loading && (
-        <div className="onboarding-empty" style={{ padding: "40px", border: "1px solid var(--border)", borderRadius: "8px", background: "var(--bg-surface)", textAlign: "center" }}>
-          <p className="onboarding-heading" style={{ fontSize: "18px", fontWeight: "600", marginBottom: "8px" }}>Initialize Workspace</p>
-          <p className="onboarding-sub" style={{ color: "var(--text-muted)", fontSize: "14px", marginBottom: "32px" }}>Select a module framework to proceed, or instantiate a blank module.</p>
-          <div className="onboarding-templates" style={{ display: "flex", gap: "16px", justifyContent: "center" }}>
+        <div className="onboarding-empty">
+          <p className="onboarding-heading" style={{ fontSize: "22px", fontWeight: "700", marginBottom: "8px" }}>
+            Nothing here yet. Suspicious.
+          </p>
+          <p className="onboarding-sub" style={{ color: "var(--text-muted)", fontSize: "14px", marginBottom: "36px", lineHeight: "1.6" }}>
+            Pick a vibe below, or just make a blank notebook and wing it.
+          </p>
+          <div className="onboarding-templates">
             {TEMPLATES.map((tpl) => (
               <button
                 key={tpl.title}
                 className="template-card"
                 onClick={() => handleTemplate(tpl)}
                 disabled={creatingTemplate}
-                style={{ background: "var(--bg-base)", border: "1px solid var(--border)", borderRadius: "8px", padding: "24px 16px", width: "220px", display: "flex", flexDirection: "column", alignItems: "center", gap: "12px", cursor: "pointer" }}
               >
-                <span className="template-icon material-symbols-rounded" style={{ fontSize: "28px", color: "var(--accent)" }}>{tpl.icon}</span>
-                <span className="template-title" style={{ fontWeight: "600", fontSize: "14px", color: "var(--text-primary)" }}>{tpl.title}</span>
-                <span className="template-desc" style={{ fontSize: "12px", color: "var(--text-muted)", textAlign: "center", lineHeight: "1.4" }}>{tpl.desc}</span>
+                <span
+                  className="template-icon material-symbols-rounded"
+                  style={{ fontSize: "32px", color: tpl.color }}
+                >
+                  {tpl.icon}
+                </span>
+                <span className="template-title" style={{ fontWeight: "700", fontSize: "13px", color: "var(--text-primary)", lineHeight: "1.3" }}>
+                  {tpl.title}
+                </span>
+                <span style={{ fontSize: "11px", color: tpl.color, fontStyle: "italic", lineHeight: "1.3" }}>
+                  {tpl.tagline}
+                </span>
+                <span className="template-desc" style={{ fontSize: "11px", color: "var(--text-muted)", textAlign: "center", lineHeight: "1.5" }}>
+                  {tpl.desc}
+                </span>
               </button>
             ))}
           </div>
+          <p style={{ marginTop: "28px", fontSize: "12px", color: "var(--text-muted)" }}>
+            or{" "}
+            <button
+              onClick={() => setShowCreate(true)}
+              style={{ background: "none", border: "none", color: "var(--accent)", textDecoration: "underline", cursor: "pointer", fontSize: "12px" }}
+            >
+              start from scratch
+            </button>
+          </p>
         </div>
       )}
 
-      {/* Search empty state */}
+      {/* ── Notebook grid / list ── */}
+      {notebooks.length > 0 && (
+        <div className={view === "grid" ? "notebook-grid" : "notebook-list"}>
+          {/* Create New card — only in grid view */}
+          {view === "grid" && (
+            <button
+              id="create-notebook-card"
+              className="notebook-card notebook-card-new"
+              onClick={() => setShowCreate(true)}
+            >
+              <span className="new-notebook-plus">+</span>
+              <span className="new-notebook-label">New notebook</span>
+            </button>
+          )}
+
+          {filtered.map((nb) => (
+            <NotebookCard
+              key={nb.id}
+              notebook={nb}
+              onDeleted={handleDeleted}
+              onRenamed={handleRenamed}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* ── Search empty state ── */}
       {filtered.length === 0 && notebooks.length > 0 && search !== "" && (
         <div className="dash-empty" style={{ textAlign: "center", padding: "48px 0" }}>
-          <p className="dash-empty-icon material-symbols-rounded" style={{ fontSize: "32px", color: "var(--text-muted)", marginBottom: "16px" }}>search_off</p>
-          <h3 style={{ fontSize: "18px", fontWeight: "600", marginBottom: "8px" }}>No constraints matched &ldquo;{search}&rdquo;</h3>
-          <p style={{ color: "var(--text-secondary)", fontSize: "14px" }}>Modify query parameters to continue.</p>
+          <p className="dash-empty-icon material-symbols-rounded" style={{ fontSize: "36px", color: "var(--text-muted)", marginBottom: "16px" }}>search_off</p>
+          <h3 style={{ fontSize: "18px", fontWeight: "600", marginBottom: "8px" }}>Nothing matches &ldquo;{search}&rdquo;</h3>
+          <p style={{ color: "var(--text-secondary)", fontSize: "14px" }}>Try something less specific. Or more specific. We&rsquo;re not your search coach.</p>
         </div>
+      )}
+
+      {/* ── Mobile FAB — only shown when notebooks exist ── */}
+      {notebooks.length > 0 && (
+        <button
+          className="mobile-fab"
+          onClick={() => setShowCreate(true)}
+          aria-label="Create new notebook"
+          title="New notebook"
+        >
+          <span className="material-symbols-rounded" style={{ fontSize: "26px" }}>add</span>
+        </button>
       )}
 
       {showCreate && (

@@ -146,8 +146,8 @@ export default function LeftPane({ notebookId }: Props) {
 
       {documents.length === 0 && !loadError && (
         <div className="empty-state">
-          <p>No sources yet.</p>
-          <p>Click &ldquo;Add Sources&rdquo; to get started.</p>
+          <p>Nothing here yet.</p>
+          <p>Feed it something — a PDF, a URL, a YouTube video.</p>
         </div>
       )}
 

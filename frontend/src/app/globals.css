@@ -984,16 +984,60 @@ textarea, input { font-family: inherit; }
 /* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
    NOTEBOOK GRID & CARDS
    â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── GRID: 2-col compact cover-art cards ── */
 .notebook-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 14px;
 }
+
+/* ── LIST: full-width rows with chevron ── */
 .notebook-list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
 }
+
+/* In list mode, cards become horizontal rows */
+.notebook-list .notebook-card {
+  flex-direction: row;
+  align-items: center;
+  min-height: 56px;
+  padding: 14px 18px;
+  border-radius: 0;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  gap: 14px;
+  backdrop-filter: none;
+  background: rgba(255,255,255,0.02);
+}
+.notebook-list .notebook-card:last-child { border-bottom: none; }
+.notebook-list .notebook-card:hover { transform: none; border-color: transparent; background: rgba(255,255,255,0.05); }
+.notebook-list .notebook-card::before { display: none; }
+.notebook-list .notebook-card-top { flex-shrink: 0; }
+.notebook-list .notebook-emoji { font-size: 20px; }
+.notebook-list .notebook-title { font-size: 14px; flex: 1; }
+.notebook-list .notebook-meta {
+  flex-direction: row;
+  gap: 12px;
+  margin-top: 0;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+/* Chevron at right in list mode */
+.notebook-list .notebook-card::after {
+  content: 'chevron_right';
+  font-family: 'Material Symbols Rounded';
+  font-size: 18px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+  margin-left: auto;
+}
+.notebook-list .notebook-card-new { display: none; }
+
 .notebook-card {
   background: rgba(255, 255, 255, 0.035);
   backdrop-filter: blur(12px);
@@ -2082,19 +2126,64 @@ code, pre, .font-mono { font-family: var(--font-mono, "Roboto Mono", monospace);
 
   .dash-shell { padding: 16px; }
   .dash-heading { font-size: 22px; }
-  .notebook-grid { grid-template-columns: 1fr; gap: 12px; }
-  .notebook-card { min-height: 100px; padding: 16px 14px; }
-  .dash-filters { flex-direction: column; align-items: stretch; }
-  .dash-search { width: 100%; }
+  /* Mobile grid: proper 2-column cover-art style */
+  .notebook-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+  .notebook-grid .notebook-card {
+    min-height: 120px;
+    padding: 14px 12px;
+    gap: 8px;
+  }
+  .notebook-grid .notebook-emoji { font-size: 32px; }
+  .notebook-grid .notebook-title { font-size: 13px; }
+
+  /* Mobile list: full rows are great already */
+  .notebook-list .notebook-card { min-height: 60px; }
+
+  .dash-filters {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+  .dash-filter-actions { justify-content: space-between; }
+  .dash-search { width: 100%; flex: 1; }
 
   .auth-card { padding: 28px 20px; margin: 12px; }
   .auth-title { font-size: 20px; }
-  /* iOS Safari anti-zoom: inputs must be ≥16px to prevent auto-zoom on focus */
-  .auth-form .form-group input { font-size: 16px; min-height: 44px; }
-  .auth-submit { min-height: 48px; font-size: 15px; }
-  .auth-tabs .auth-tab { min-height: 40px; }
+  .auth-form .form-group input { font-size: 16px; min-height: 48px; }
+  .auth-submit { min-height: 52px; font-size: 15px; }
+  .auth-tabs .auth-tab { min-height: 44px; }
 
   .sandbox-warning { font-size: 12px; padding: 8px 10px; }
+
+  /* Onboarding cards stack vertically on mobile */
+  .onboarding-templates { flex-direction: column !important; align-items: stretch !important; }
+  .template-card { width: 100% !important; flex-direction: row !important; padding: 16px !important; }
+  .template-card .template-icon { font-size: 24px !important; flex-shrink: 0; }
+
+  /* Bottom FAB for create new */
+  .mobile-fab {
+    position: fixed;
+    bottom: 24px;
+    right: 20px;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent), hsl(232, 80%, 55%));
+    border: 1px solid var(--gold-border);
+    box-shadow: 0 8px 24px var(--accent-glow), 0 0 16px var(--gold-dim);
+    color: white;
+    font-size: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    transition: all 0.2s ease;
+    cursor: pointer;
+  }
+  .mobile-fab:active { transform: scale(0.93); }
 }
 
 @media (max-width: 374px) {
@@ -2102,4 +2191,61 @@ code, pre, .font-mono { font-family: var(--font-mono, "Roboto Mono", monospace);
   .mobile-tab-label { font-size: 9px; }
   .notebook-breadcrumb { max-width: 100px; }
   .header-icon-btn { width: 32px; height: 32px; font-size: 14px; }
+  .notebook-grid { grid-template-columns: 1fr; }
 }
+
+/* ─────────────────────────────────────────────────
+   ONBOARDING CARDS — new design
+   ───────────────────────────────────────────────── */
+.onboarding-empty {
+  padding: 48px 24px !important;
+  background: rgba(255,255,255,0.025) !important;
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255,255,255,0.07) !important;
+  border-top: 2px solid var(--gold) !important;
+  border-radius: var(--radius-lg) !important;
+  text-align: center;
+}
+.onboarding-heading {
+  background: linear-gradient(120deg, #fff 0%, hsl(212, 90%, 72%) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.onboarding-templates {
+  display: flex;
+  gap: 14px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.template-card {
+  background: rgba(255,255,255,0.03) !important;
+  border: 1px solid rgba(255,255,255,0.08) !important;
+  border-radius: var(--radius-lg) !important;
+  padding: 24px 18px !important;
+  width: 200px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  gap: 10px !important;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  position: relative;
+  overflow: hidden;
+}
+.template-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--gold), transparent);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+.template-card:hover {
+  border-color: var(--gold-border) !important;
+  transform: translateY(-3px);
+  box-shadow: 0 12px 32px rgba(0,0,0,0.4), 0 0 20px var(--gold-dim);
+}
+.template-card:hover::before { opacity: 1; }
+.template-card:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }

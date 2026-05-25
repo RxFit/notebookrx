@@ -43,7 +43,7 @@ export default function LoginPage() {
         <div className="auth-brand">
           <span className="auth-icon material-symbols-rounded" style={{fontSize: "32px", color: "var(--accent)"}}>psychology</span>
           <h1 className="auth-title">notebook<span className="brand-dot-blue">.blue</span></h1>
-          <p className="auth-subtitle">Upload your documents. Ask anything. Get cited answers.</p>
+          <p className="auth-subtitle">Your docs, but make them talk back.</p>
         </div>
 
         {mode !== "forgot" ? (

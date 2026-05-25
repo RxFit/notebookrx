@@ -8,9 +8,11 @@ import SettingsMenu from "@/components/Navigation/SettingsMenu";
 
 function timeOfDay(): string {
   const h = new Date().getHours();
-  if (h < 12) return "morning";
-  if (h < 17) return "afternoon";
-  return "evening";
+  if (h < 5)  return "burning the midnight oil";
+  if (h < 12) return "starting strong";
+  if (h < 17) return "in your prime hours";
+  if (h < 21) return "winding down";
+  return "up way too late";
 }
 
 export default function Home() {
@@ -29,7 +31,7 @@ export default function Home() {
       <div className="auth-shell">
         <div className="auth-loading">
           <span className="loading-spinner" />
-          <span>Loading…</span>
+          <span>Hold on…</span>
         </div>
       </div>
     );
@@ -73,8 +75,12 @@ export default function Home() {
 
       <div className="dash-shell">
         <div className="dash-hero" style={{ marginBottom: "32px", paddingBottom: "16px", borderBottom: "1px solid var(--border)" }}>
-          <h1 className="dash-heading" style={{ fontSize: "24px", fontWeight: "600", marginBottom: "4px" }}>Executive Briefing: {firstName}</h1>
-          <p className="dash-subheading" style={{ color: "var(--text-muted)", fontSize: "14px" }}>Active Session</p>
+          <h1 className="dash-heading" style={{ fontSize: "24px", fontWeight: "700", marginBottom: "4px" }}>
+            Hey, {firstName}.
+          </h1>
+          <p className="dash-subheading" style={{ color: "var(--text-muted)", fontSize: "13px" }}>
+            You&rsquo;re {timeOfDay()}. Here are your notebooks.
+          </p>
         </div>
         <DashboardPage />
       </div>
