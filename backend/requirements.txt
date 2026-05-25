@@ -9,7 +9,7 @@ asyncpg>=0.30
 pgvector>=0.3
 alembic>=1.13
 google-genai
-google-api-python-client>=2.120
+google-api-python-client>=2.196.0
 google-auth-httplib2>=0.2
 google-auth-oauthlib>=1.2
 google-cloud-vision>=3.7
