@@ -21,7 +21,24 @@ async def migrate():
         await conn.execute(sa.text(
             "ALTER TABLE users ADD COLUMN IF NOT EXISTS google_refresh_token VARCHAR"
         ))
-        print("✅ Additive migrations applied (google_id, oauth_provider, avatar_url, google_refresh_token)")
+        # W4 — Output language preference (#15)
+        await conn.execute(sa.text(
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS output_language VARCHAR NOT NULL DEFAULT 'en'"
+        ))
+        # W5 — Additional model columns that may be missing from older schemas
+        await conn.execute(sa.text(
+            "ALTER TABLE notebooks ADD COLUMN IF NOT EXISTS system_prompt TEXT"
+        ))
+        await conn.execute(sa.text(
+            "ALTER TABLE documents ADD COLUMN IF NOT EXISTS status VARCHAR NOT NULL DEFAULT 'ready'"
+        ))
+        await conn.execute(sa.text(
+            "ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS intent VARCHAR"
+        ))
+        await conn.execute(sa.text(
+            "ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS citations_json TEXT"
+        ))
+        print("✅ Additive migrations applied (google_id, oauth_provider, avatar_url, google_refresh_token, output_language, system_prompt, status, intent, citations_json)")
 
         # W3 — Performance indexes (audit findings CRIT-3, HIGH-7)
         # HNSW vector index for cosine similarity search on document chunks
