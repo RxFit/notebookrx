@@ -27,7 +27,9 @@ app = FastAPI(
 ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://localhost:3003",
+    "http://127.0.0.1:3000",
     "https://notebookrx-api-production.up.railway.app",
+    "https://notebookrx-production.vercel.app",
     "https://notebook.blue",
     "https://www.notebook.blue",
 ]

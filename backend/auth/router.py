@@ -107,6 +107,13 @@ async def login(req: LoginRequest, db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(User).where(User.email == req.email))
     user = result.scalar_one_or_none()
 
+    # Guard: OAuth-only accounts should not use password login
+    if user and user.oauth_provider == "google" and not verify_password(req.password, user.password_hash):
+        raise HTTPException(
+            status.HTTP_403_FORBIDDEN,
+            "This account uses Google Sign-In. Please use the 'Continue with Google' button.",
+        )
+
     # Always run verify even on miss — prevents email enumeration via timing
     stored_hash = user.password_hash if user else "x$y"
     if not user or not verify_password(req.password, stored_hash):
