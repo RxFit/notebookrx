@@ -2,7 +2,10 @@
 Auth router — /auth/register, /auth/login, /auth/me
 """
 import uuid
-from fastapi import APIRouter, HTTPException, Depends, status
+import re
+import logging
+import redis.asyncio as aioredis
+from fastapi import APIRouter, HTTPException, Depends, status, Request
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -12,6 +15,12 @@ from db.models import User
 from auth.jwt_handler import hash_password, verify_password, create_access_token, get_current_user
 from auth.cookies import set_access_cookie, clear_auth_cookies
 from auth.refresh import create_refresh_token, set_refresh_cookie
+from config import settings
+
+logger = logging.getLogger(__name__)
+
+_LOCKOUT_MAX = 10       # max failed attempts before lockout
+_LOCKOUT_WINDOW = 900   # 15 minutes in seconds
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -26,8 +35,15 @@ class RegisterRequest(BaseModel):
     @field_validator("password")
     @classmethod
     def password_strength(cls, v: str) -> str:
+        # RxHarden T7: Enhanced password complexity
         if len(v) < 8:
             raise ValueError("Password must be at least 8 characters")
+        if not re.search(r'[A-Z]', v):
+            raise ValueError("Password must contain at least one uppercase letter")
+        if not re.search(r'[a-z]', v):
+            raise ValueError("Password must contain at least one lowercase letter")
+        if not re.search(r'[0-9]', v):
+            raise ValueError("Password must contain at least one digit")
         return v
 
     @field_validator("email")
@@ -114,7 +130,27 @@ async def register(req: RegisterRequest, db: AsyncSession = Depends(get_db)):
 
 
 @router.post("/login", response_model=TokenResponse)
-async def login(req: LoginRequest, db: AsyncSession = Depends(get_db)):
+async def login(req: LoginRequest, request: Request, db: AsyncSession = Depends(get_db)):
+    # RxHarden T7: Check lockout before processing
+    lockout_key = f"lockout:{req.email}"
+    r = None
+    try:
+        r = aioredis.from_url(settings.REDIS_URL, encoding="utf-8", decode_responses=True, socket_connect_timeout=2)
+        await r.ping()
+        fail_count = await r.get(lockout_key)
+        if fail_count and int(fail_count) >= _LOCKOUT_MAX:
+            ttl = await r.ttl(lockout_key)
+            await r.aclose()
+            raise HTTPException(
+                status_code=429,
+                detail=f"Account temporarily locked due to too many failed attempts. Try again in {ttl} seconds.",
+                headers={"Retry-After": str(ttl)},
+            )
+    except HTTPException:
+        raise
+    except Exception:
+        pass  # Redis unavailable — skip lockout check, fail open
+
     result = await db.execute(select(User).where(User.email == req.email))
     user = result.scalar_one_or_none()
 
@@ -128,11 +164,29 @@ async def login(req: LoginRequest, db: AsyncSession = Depends(get_db)):
     # Always run verify even on miss — prevents email enumeration via timing
     stored_hash = user.password_hash if user else "x$y"
     if not user or not verify_password(req.password, stored_hash):
+        # RxHarden T7: Increment failure counter
+        if r:
+            try:
+                pipe = r.pipeline()
+                pipe.incr(lockout_key)
+                pipe.expire(lockout_key, _LOCKOUT_WINDOW)
+                await pipe.execute()
+                await r.aclose()
+            except Exception:
+                pass
         raise HTTPException(
             status.HTTP_401_UNAUTHORIZED,
             "Invalid email or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
+
+    # RxHarden T7: Reset lockout counter on successful login
+    if r:
+        try:
+            await r.delete(lockout_key)
+            await r.aclose()
+        except Exception:
+            pass
 
     token = create_access_token(user.id, user.email)
     response_data = TokenResponse(
