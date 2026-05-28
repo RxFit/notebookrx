@@ -14,7 +14,7 @@ export const authStorage = {
   },
 };
 
-export const api = axios.create({ baseURL: BASE_URL });
+export const api = axios.create({ baseURL: BASE_URL, withCredentials: true });
 
 api.interceptors.request.use((config) => {
   const token = authStorage.getToken();

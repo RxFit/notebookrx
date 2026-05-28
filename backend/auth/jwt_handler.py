@@ -1,4 +1,4 @@
-﻿import hashlib, hmac, os, uuid
+import hashlib, hmac, os, uuid
 from datetime import datetime, timedelta, timezone
 from typing import Annotated
 import jwt
@@ -45,16 +45,24 @@ def decode_token(token: str) -> dict:
 _bearer = HTTPBearer(auto_error=False)
 
 async def get_current_user(
+    request: Request,
     credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(_bearer)],
     db: AsyncSession = Depends(get_db),
 ) -> User:
-    if credentials is None:
+    # RxHarden T3: Try httpOnly cookie first, then Authorization header
+    token = request.cookies.get("access_token")
+    
+    if not token and credentials:
+        token = credentials.credentials
+    
+    if not token:
         raise HTTPException(
             status.HTTP_401_UNAUTHORIZED,
-            "Not authenticated - provide a Bearer token",
+            "Not authenticated - provide a Bearer token or auth cookie",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    payload = decode_token(credentials.credentials)
+    
+    payload = decode_token(token)
     user_id: str = payload.get("sub", "")
     result = await db.execute(select(User).where(User.id == user_id))
     user = result.scalar_one_or_none()

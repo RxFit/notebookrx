@@ -3,12 +3,14 @@ Auth router — /auth/register, /auth/login, /auth/me
 """
 import uuid
 from fastapi import APIRouter, HTTPException, Depends, status
+from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from pydantic import BaseModel, EmailStr, field_validator
 from db.database import get_db
 from db.models import User
 from auth.jwt_handler import hash_password, verify_password, create_access_token, get_current_user
+from auth.cookies import set_access_cookie, clear_auth_cookies
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -94,12 +96,16 @@ async def register(req: RegisterRequest, db: AsyncSession = Depends(get_db)):
     await db.refresh(user)
 
     token = create_access_token(user.id, user.email)
-    return TokenResponse(
+    response_data = TokenResponse(
         access_token=token,
         user_id=user.id,
         email=user.email,
         display_name=user.display_name,
     )
+    # RxHarden T3: Set httpOnly cookie alongside body response (dual-mode)
+    response = JSONResponse(content=response_data.model_dump(), status_code=201)
+    set_access_cookie(response, token)
+    return response
 
 
 @router.post("/login", response_model=TokenResponse)
@@ -124,12 +130,16 @@ async def login(req: LoginRequest, db: AsyncSession = Depends(get_db)):
         )
 
     token = create_access_token(user.id, user.email)
-    return TokenResponse(
+    response_data = TokenResponse(
         access_token=token,
         user_id=user.id,
         email=user.email,
         display_name=user.display_name,
     )
+    # RxHarden T3: Set httpOnly cookie alongside body response (dual-mode)
+    response = JSONResponse(content=response_data.model_dump())
+    set_access_cookie(response, token)
+    return response
 
 
 @router.get("/me", response_model=MeResponse)
@@ -164,3 +174,11 @@ async def update_me(
         display_name=current_user.display_name,
         output_language=current_user.output_language,
     )
+
+
+@router.post("/logout")
+async def logout():
+    """RxHarden T3: Clear httpOnly auth cookies."""
+    response = JSONResponse(content={"detail": "Logged out"})
+    clear_auth_cookies(response)
+    return response

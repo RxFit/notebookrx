@@ -73,6 +73,7 @@ export default function AddSourcesModal({ notebookId, onClose, onAdded }: Props)
     try {
       const res = await fetch(`${BACKEND}/api/ingest/drive/list`, {
         headers: { Authorization: `Bearer ${token}` },
+        credentials: 'include',
       });
       if (res.status === 403) {
         setDriveError("Drive access not authorised — please sign in with Google first.");
@@ -108,6 +109,7 @@ export default function AddSourcesModal({ notebookId, onClose, onAdded }: Props)
         const res = await fetch(`${BACKEND}/api/ingest/upload`, {
           method: "POST",
           headers: { Authorization: `Bearer ${token}` },
+          credentials: 'include',
           body: formData,
         });
         if (!res.ok) {
@@ -142,6 +144,7 @@ export default function AddSourcesModal({ notebookId, onClose, onAdded }: Props)
       const res = await fetch(`${BACKEND}/api/ingest/${endpoint}`, {
         method: "POST",
         headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        credentials: 'include',
         body: JSON.stringify({ url: url.trim(), notebook_id: notebookId }),
       });
       if (!res.ok) {
@@ -164,6 +167,7 @@ export default function AddSourcesModal({ notebookId, onClose, onAdded }: Props)
       const res = await fetch(`${BACKEND}/api/ingest/text`, {
         method: "POST",
         headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        credentials: 'include',
         body: JSON.stringify({ content: text.trim(), title: title.trim() || "Pasted Text", notebook_id: notebookId }),
       });
       if (!res.ok) {
@@ -195,6 +199,7 @@ export default function AddSourcesModal({ notebookId, onClose, onAdded }: Props)
         const res = await fetch(`${BACKEND}/api/ingest/drive`, {
           method: "POST",
           headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+          credentials: 'include',
           body: JSON.stringify({ file_id: fileId, notebook_id: notebookId }),
         });
         if (!res.ok) {
