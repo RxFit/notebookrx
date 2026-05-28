@@ -3,16 +3,24 @@ WebSocket real-time presence — /api/ws/{notebook_id}
 Broadcasts: { type: "presence", users: [{user_id, display_name, color}] }
             { type: "cursor",   user_id, position }
             { type: "chat_typing", user_id, display_name }
+
+RxHarden Phase 3 Task 5: Ticket-based WebSocket auth replaces JWT-in-query-param.
 """
 import json
+import logging
 import asyncio
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query
+import secrets
+import redis.asyncio as aioredis
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query, Depends, HTTPException
 from sqlalchemy import select
-from auth.jwt_handler import decode_token
+from auth.jwt_handler import get_current_user
 from db.database import AsyncSessionLocal
 from db.models import Notebook
 from collections import defaultdict
 from typing import Any
+from config import settings
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/ws", tags=["websocket"])
 
@@ -50,20 +58,64 @@ async def _broadcast_presence(notebook_id: str):
         room.pop(uid, None)
 
 
+@router.post("/ticket")
+async def create_ws_ticket(user=Depends(get_current_user)):
+    """RxHarden T5: Issue a short-lived, single-use WebSocket ticket."""
+    try:
+        r = aioredis.from_url(settings.REDIS_URL, encoding="utf-8", decode_responses=True, socket_connect_timeout=2)
+        await r.ping()
+    except Exception:
+        raise HTTPException(status_code=503, detail="Ticket service unavailable.")
+
+    ticket = secrets.token_urlsafe(32)
+    payload = json.dumps({"user_id": user.id, "display_name": user.display_name})
+    await r.set(f"ws:ticket:{ticket}", payload, ex=30)  # 30s TTL
+    await r.aclose()
+    return {"ticket": ticket, "expires_in": 30}
+
+
 @router.websocket("/{notebook_id}")
 async def notebook_ws(
     websocket: WebSocket,
     notebook_id: str,
-    token: str = Query(...),
+    ticket: str = Query(None),
+    token: str = Query(None),  # Legacy fallback
 ):
-    """WebSocket endpoint — clients authenticate via ?token=<jwt>"""
-    # Validate JWT
-    try:
-        payload = decode_token(token)
-        user_id      = payload["sub"]
-        display_name = payload.get("display_name", "Anonymous")
-    except Exception:
-        await websocket.close(code=4001, reason="Invalid token")
+    """WebSocket endpoint — RxHarden T5: ticket-based auth (legacy token fallback)."""
+    user_id = None
+    display_name = "Anonymous"
+
+    if ticket:
+        # Ticket-based auth (preferred)
+        try:
+            r = aioredis.from_url(settings.REDIS_URL, encoding="utf-8", decode_responses=True, socket_connect_timeout=2)
+            pipe = r.pipeline()
+            pipe.get(f"ws:ticket:{ticket}")
+            pipe.delete(f"ws:ticket:{ticket}")  # Single-use
+            results = await pipe.execute()
+            await r.aclose()
+            payload_str = results[0]
+            if not payload_str:
+                await websocket.close(code=4001, reason="Invalid or expired ticket")
+                return
+            payload = json.loads(payload_str)
+            user_id = payload["user_id"]
+            display_name = payload.get("display_name", "Anonymous")
+        except Exception:
+            await websocket.close(code=4001, reason="Ticket validation failed")
+            return
+    elif token:
+        # Legacy JWT fallback
+        from auth.jwt_handler import decode_token
+        try:
+            payload = decode_token(token)
+            user_id = payload["sub"]
+            display_name = payload.get("display_name", "Anonymous")
+        except Exception:
+            await websocket.close(code=4001, reason="Invalid token")
+            return
+    else:
+        await websocket.close(code=4001, reason="No authentication provided")
         return
 
     # Verify user owns this notebook before accepting the connection

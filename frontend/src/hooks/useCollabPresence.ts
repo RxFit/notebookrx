@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState, useRef, useCallback } from "react";
-import { authStorage } from "@/lib/api";
+import { api, authStorage } from "@/lib/api";
 
 export interface PresenceUser {
   user_id: string;
@@ -24,31 +24,52 @@ export function useCollabPresence(notebookId: string | null) {
 
   useEffect(() => {
     if (!notebookId) return;
-    const token = authStorage.getToken();
-    if (!token) return;
+    let cancelled = false;
 
-    const url = `${WS_BASE}/api/ws/${notebookId}?token=${encodeURIComponent(token)}`;
-    const ws  = new WebSocket(url);
-    wsRef.current = ws;
-
-    ws.onopen  = () => setConnected(true);
-    ws.onclose = () => { setConnected(false); setUsers([]); };
-    ws.onerror = () => setConnected(false);
-
-    ws.onmessage = (e) => {
+    // RxHarden T5: Fetch a short-lived ticket before connecting
+    async function connect() {
+      let url: string;
       try {
-        const msg = JSON.parse(e.data);
-        if (msg.type === "presence") setUsers(msg.users || []);
-        if (msg.type === "pong") { /* heartbeat ok */ }
-      } catch { /* ignore malformed */ }
-    };
+        const { data } = await api.post("/api/ws/ticket");
+        url = `${WS_BASE}/api/ws/${notebookId}?ticket=${encodeURIComponent(data.ticket)}`;
+      } catch {
+        // Fallback to legacy JWT auth if ticket service is unavailable
+        const token = authStorage.getToken();
+        if (!token) return;
+        url = `${WS_BASE}/api/ws/${notebookId}?token=${encodeURIComponent(token)}`;
+      }
+
+      if (cancelled) return;
+
+      const ws  = new WebSocket(url);
+      wsRef.current = ws;
+
+      ws.onopen  = () => setConnected(true);
+      ws.onclose = () => { setConnected(false); setUsers([]); };
+      ws.onerror = () => setConnected(false);
+
+      ws.onmessage = (e) => {
+        try {
+          const msg = JSON.parse(e.data);
+          if (msg.type === "presence") setUsers(msg.users || []);
+          if (msg.type === "pong") { /* heartbeat ok */ }
+        } catch { /* ignore malformed */ }
+      };
+    }
+
+    connect();
 
     // Heartbeat every 25s to keep connection alive through Railway proxy
-    const hb = setInterval(() => ws.send(JSON.stringify({ type: "ping" })), 25_000);
+    const hb = setInterval(() => {
+      if (wsRef.current?.readyState === WebSocket.OPEN) {
+        wsRef.current.send(JSON.stringify({ type: "ping" }));
+      }
+    }, 25_000);
 
     return () => {
+      cancelled = true;
       clearInterval(hb);
-      ws.close();
+      wsRef.current?.close();
     };
   }, [notebookId]);
 
