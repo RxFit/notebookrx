@@ -184,8 +184,10 @@ async def google_callback(
             user.avatar_url = avatar_url
 
     # Store refresh token if provided (needed for Drive API calls)
+    # RxHarden T2: Encrypt at rest before DB write
     if refresh_token:
-        user.google_refresh_token = refresh_token
+        from auth.token_encryption import encrypt_token
+        user.google_refresh_token = encrypt_token(refresh_token)
 
     await db.commit()
     await db.refresh(user)

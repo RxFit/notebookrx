@@ -70,7 +70,9 @@ async def list_drive_files(
             detail="Drive access not authorised. Please sign in with Google to enable Drive import.",
         )
 
-    service = _get_drive_service(current_user.google_refresh_token)
+    # RxHarden T2: Decrypt refresh token before use
+    from auth.token_encryption import decrypt_token
+    service = _get_drive_service(decrypt_token(current_user.google_refresh_token))
 
     # Include Google Docs, PDFs, plain text, DOCX, PPTX
     query_parts = [
@@ -118,7 +120,9 @@ async def ingest_drive_file(
     if not notebook:
         raise HTTPException(status_code=404, detail="Notebook not found.")
 
-    service = _get_drive_service(current_user.google_refresh_token)
+    # RxHarden T2: Decrypt refresh token before use
+    from auth.token_encryption import decrypt_token
+    service = _get_drive_service(decrypt_token(current_user.google_refresh_token))
 
     # Get file metadata
     try:
