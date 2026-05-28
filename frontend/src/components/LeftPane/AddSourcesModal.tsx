@@ -13,7 +13,7 @@ interface Props {
 interface Message { text: string; type: "success" | "error" | "info" }
 interface DriveFile { id: string; name: string; mimeType: string; modifiedTime?: string }
 
-const BACKEND = process.env.NEXT_PUBLIC_API_URL || "https://notebookrx-api-production.up.railway.app";
+const BACKEND = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
 
 function mimeIcon(mime: string) {
   if (mime.includes("pdf"))    return "picture_as_pdf";
@@ -126,12 +126,18 @@ export default function AddSourcesModal({ notebookId, onClose, onAdded }: Props)
     setLoading(false);
   };
 
-  // --- URL / YouTube handler ---
   const handleUrl = async () => {
     if (!url.trim()) return;
     setLoading(true); setMessage(null);
     const isYoutube = activeTab === "youtube";
-    const endpoint = isYoutube ? "youtube" : "url";
+    
+    if (isYoutube) {
+      setMessage({ text: "YouTube ingestion coming soon! Please use 'Paste Text' as a fallback.", type: "info" });
+      setLoading(false);
+      return;
+    }
+
+    const endpoint = "url";
     try {
       const res = await fetch(`${BACKEND}/api/ingest/${endpoint}`, {
         method: "POST",

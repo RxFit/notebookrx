@@ -56,6 +56,10 @@ export const NotebookService = {
     const { data } = await api.get("/api/notebooks/");
     return data;
   },
+  async get(id: string): Promise<Notebook> {
+    const { data } = await api.get("/api/notebooks/" + id);
+    return data;
+  },
   async create(title: string, emoji: string): Promise<Notebook> {
     const { data } = await api.post("/api/notebooks/", { title, emoji });
     return data;

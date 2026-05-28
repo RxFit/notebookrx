@@ -49,8 +49,7 @@ export default function NotebookWorkspace({ params }: { params: Promise<{ id: st
   useEffect(() => {
     if (!notebookId) return;
     setActiveNotebookId(notebookId);
-    NotebookService.list().then((nbs) => {
-      const found = nbs.find((n) => n.id === notebookId);
+    NotebookService.get(notebookId).then((found) => {
       if (found) {
         setNotebookTitle(found.title);
         setNotebookEmoji(found.emoji);

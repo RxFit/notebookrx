@@ -6,6 +6,7 @@ import NotebookCard from "./NotebookCard";
 import DashboardFilters from "./DashboardFilters";
 import CreateNotebookModal from "./CreateNotebookModal";
 import { useAuth } from "@/context/AuthContext";
+import { useRouter } from "next/navigation";
 
 const TEMPLATES = [
   { icon: "analytics", title: "KPI Dashboard",   desc: "Analyze executive metrics and extract key findings" },
@@ -15,6 +16,7 @@ const TEMPLATES = [
 
 export default function DashboardPage() {
   const { user } = useAuth();
+  const router = useRouter();
   const [notebooks, setNotebooks] = useState<Notebook[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
@@ -37,6 +39,7 @@ export default function DashboardPage() {
   const handleCreated = (nb: Notebook) => {
     setNotebooks((prev) => [nb, ...prev]);
     setShowCreate(false);
+    router.push("/notebook/" + nb.id);
   };
 
   const handleDeleted = (id: string) => setNotebooks((prev) => prev.filter((n) => n.id !== id));
@@ -47,6 +50,7 @@ export default function DashboardPage() {
     try {
       const nb = await NotebookService.create(tpl.title, tpl.icon);
       setNotebooks((prev) => [nb, ...prev]);
+      router.push("/notebook/" + nb.id);
     } catch { /* ignore */ } finally {
       setCreatingTemplate(false);
     }

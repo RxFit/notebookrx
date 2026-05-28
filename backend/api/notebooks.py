@@ -53,6 +53,7 @@ class NotebookOut(BaseModel):
     system_prompt: Optional[str] = None
     created_at: datetime
     updated_at: datetime
+    owner_id: str
 
     class Config:
         from_attributes = True
@@ -85,6 +86,7 @@ async def list_notebooks(
             source_count=source_count,
             system_prompt=nb.system_prompt,
             created_at=nb.created_at, updated_at=nb.updated_at,
+            owner_id=nb.user_id,
         ))
     return out
 
@@ -100,7 +102,30 @@ async def create_notebook(
     await db.commit()
     await db.refresh(nb)
     return NotebookOut(id=nb.id, title=nb.title, emoji=nb.emoji,
-                       source_count=0, created_at=nb.created_at, updated_at=nb.updated_at)
+                       source_count=0, created_at=nb.created_at, updated_at=nb.updated_at, owner_id=nb.user_id)
+
+
+@router.get("/{notebook_id}", response_model=NotebookOut)
+async def get_notebook(
+    notebook_id: str,
+    db: AsyncSession = Depends(get_db),
+    user=Depends(get_current_user),
+):
+    result = await db.execute(
+        select(Notebook).where(Notebook.id == notebook_id, Notebook.user_id == user.id)
+    )
+    nb = result.scalar_one_or_none()
+    if not nb:
+        raise HTTPException(404, "Notebook not found")
+        
+    count_res = await db.execute(
+        select(func.count(Document.id)).where(Document.notebook_id == nb.id)
+    )
+    source_count = count_res.scalar() or 0
+    
+    return NotebookOut(id=nb.id, title=nb.title, emoji=nb.emoji,
+                       source_count=source_count, system_prompt=nb.system_prompt,
+                       created_at=nb.created_at, updated_at=nb.updated_at, owner_id=nb.user_id)
 
 
 @router.patch("/{notebook_id}", response_model=NotebookOut)
@@ -130,7 +155,7 @@ async def update_notebook(
     source_count = count_res.scalar() or 0
     return NotebookOut(id=nb.id, title=nb.title, emoji=nb.emoji,
                        source_count=source_count, system_prompt=nb.system_prompt,
-                       created_at=nb.created_at, updated_at=nb.updated_at)
+                       created_at=nb.created_at, updated_at=nb.updated_at, owner_id=nb.user_id)
 
 
 @router.delete("/{notebook_id}", status_code=204)
