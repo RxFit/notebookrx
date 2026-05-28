@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from api import ingest, chat, media, notebooks, notes, google_auth, ws, drive
 from auth import router as auth_router
+from auth import refresh as refresh_router
 from db.database import init_db
 from middleware.rate_limit import RateLimitMiddleware
 from middleware.security_headers import SecurityHeadersMiddleware
@@ -49,6 +50,7 @@ app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(RateLimitMiddleware, redis_url=settings.REDIS_URL)
 
 app.include_router(auth_router.router)
+app.include_router(refresh_router.router)
 app.include_router(google_auth.router)
 app.include_router(ws.router)
 app.include_router(ingest.router,     prefix="/api/ingest",     tags=["ingest"])

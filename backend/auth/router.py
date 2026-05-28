@@ -11,6 +11,7 @@ from db.database import get_db
 from db.models import User
 from auth.jwt_handler import hash_password, verify_password, create_access_token, get_current_user
 from auth.cookies import set_access_cookie, clear_auth_cookies
+from auth.refresh import create_refresh_token, set_refresh_cookie
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -105,6 +106,10 @@ async def register(req: RegisterRequest, db: AsyncSession = Depends(get_db)):
     # RxHarden T3: Set httpOnly cookie alongside body response (dual-mode)
     response = JSONResponse(content=response_data.model_dump(), status_code=201)
     set_access_cookie(response, token)
+    # RxHarden T4: Issue refresh token
+    refresh_id = await create_refresh_token(user.id, user.email)
+    if refresh_id:
+        set_refresh_cookie(response, refresh_id)
     return response
 
 
@@ -139,6 +144,10 @@ async def login(req: LoginRequest, db: AsyncSession = Depends(get_db)):
     # RxHarden T3: Set httpOnly cookie alongside body response (dual-mode)
     response = JSONResponse(content=response_data.model_dump())
     set_access_cookie(response, token)
+    # RxHarden T4: Issue refresh token
+    refresh_id = await create_refresh_token(user.id, user.email)
+    if refresh_id:
+        set_refresh_cookie(response, refresh_id)
     return response
 
 

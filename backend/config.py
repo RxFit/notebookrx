@@ -1,4 +1,4 @@
-﻿from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file="../.env", extra="ignore")
@@ -26,6 +26,7 @@ class Settings(BaseSettings):
     # JWT Auth
     SECRET_KEY: str
     JWT_ALGORITHM: str = "HS256"
-    JWT_EXPIRE_MINUTES: int = 10080   # 7 days
+    JWT_EXPIRE_MINUTES: int = 60       # RxHarden T4: 1 hour (was 10080 = 7 days)
+    REFRESH_EXPIRE_DAYS: int = 7       # RxHarden T4: 7-day refresh tokens
 
 settings = Settings()

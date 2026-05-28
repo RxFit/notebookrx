@@ -22,13 +22,61 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+
+// RxHarden T4: Silent refresh interceptor
+let isRefreshing = false;
+let refreshSubscribers: ((ok: boolean) => void)[] = [];
+
+function onRefreshComplete(ok: boolean) {
+  refreshSubscribers.forEach((cb) => cb(ok));
+  refreshSubscribers = [];
+}
+
 api.interceptors.response.use(
   (res) => res,
-  (err) => {
-    if (err.response?.status === 401 && typeof window !== "undefined") {
-      authStorage.clear();
-      window.dispatchEvent(new Event("auth:logout"));
+  async (err) => {
+    const original = err.config;
+    
+    // Only attempt refresh on 401 (not on login/register/refresh endpoints)
+    if (
+      err.response?.status === 401 &&
+      typeof window !== "undefined" &&
+      !original._retry &&
+      !original.url?.includes("/auth/login") &&
+      !original.url?.includes("/auth/register") &&
+      !original.url?.includes("/auth/refresh")
+    ) {
+      if (isRefreshing) {
+        // Wait for the in-flight refresh to complete
+        return new Promise((resolve, reject) => {
+          refreshSubscribers.push((ok) => {
+            if (ok) {
+              original._retry = true;
+              resolve(api(original));
+            } else {
+              reject(err);
+            }
+          });
+        });
+      }
+
+      isRefreshing = true;
+      original._retry = true;
+
+      try {
+        await api.post("/auth/refresh");
+        onRefreshComplete(true);
+        isRefreshing = false;
+        return api(original);
+      } catch {
+        onRefreshComplete(false);
+        isRefreshing = false;
+        authStorage.clear();
+        window.dispatchEvent(new Event("auth:logout"));
+        return Promise.reject(err);
+      }
     }
+
     return Promise.reject(err);
   }
 );
@@ -48,6 +96,10 @@ export const AuthService = {
   },
   async updateLanguage(language: string): Promise<void> {
     await api.patch("/auth/me", { output_language: language });
+  },
+  async logout(): Promise<void> {
+    try { await api.post("/auth/logout"); } catch { /* ignore */ }
+    authStorage.clear();
   },
 };
 
