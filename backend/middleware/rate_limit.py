@@ -20,6 +20,38 @@ import time, logging, jwt, os
 
 logger = logging.getLogger(__name__)
 
+
+# RxHarden T6: In-memory fallback rate limiter when Redis is unavailable
+class _InMemoryRateLimiter:
+    """Simple in-memory sliding window counter. NOT for production scale — degraded fallback only."""
+
+    def __init__(self):
+        self._counts: dict[str, list[float]] = {}
+        self._degraded_logged = False
+
+    def check(self, key: str, limit: int, window: int) -> tuple[bool, int, int]:
+        now = time.time()
+        # Evict expired entries
+        timestamps = [t for t in self._counts.get(key, []) if t > now - window]
+        timestamps.append(now)
+        self._counts[key] = timestamps
+        count = len(timestamps)
+        allowed = count <= limit
+        remaining = max(0, limit - count)
+        retry_after = window if not allowed else 0
+        return allowed, remaining, retry_after
+
+    def log_degraded(self):
+        if not self._degraded_logged:
+            logger.warning("Rate limiter: DEGRADED MODE — using in-memory fallback (Redis unavailable)")
+            self._degraded_logged = True
+
+    def clear_degraded(self):
+        self._degraded_logged = False
+
+
+_fallback = _InMemoryRateLimiter()
+
 # (path_prefix, limit, window_seconds, key_type)
 # Auth endpoints use IP-based limiting to block brute-force before JWT is issued
 RATE_RULES = [
@@ -95,7 +127,12 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
 
         r = await self._get_redis()
         if r is None:
-            return await call_next(request)
+            # RxHarden T6: Use in-memory fallback instead of failing open
+            _fallback.log_degraded()
+            # Still apply rate limiting, just in-memory
+            pass  # Will be handled below
+        else:
+            _fallback.clear_degraded()
 
         limit, window, key_source = GLOBAL_LIMIT, GLOBAL_WINDOW, "ip"
         for prefix, rl, rw, rs in RATE_RULES:
@@ -113,7 +150,11 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             key      = f"rl:global:{identity}"
 
         try:
-            allowed, remaining, retry_after = await self._sliding_window(r, key, limit, window)
+            if r is not None:
+                allowed, remaining, retry_after = await self._sliding_window(r, key, limit, window)
+            else:
+                # In-memory fallback
+                allowed, remaining, retry_after = _fallback.check(key, limit, window)
         except Exception as exc:
             logger.warning("Rate limiter: error, failing open. %s", exc)
             return await call_next(request)
