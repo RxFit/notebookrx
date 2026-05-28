@@ -5,19 +5,43 @@ Flow: redirect user to Google → handle token exchange → upsert user → issu
 Scopes requested:
   openid email profile                — for SSO login (#24)
   https://www.googleapis.com/auth/drive.readonly  — for Drive ingestion (#25)
+
+RxHarden Phase 3 Task 1: Auth code exchange replaces JWT-in-URL redirect.
 """
+import json
+import logging
 import secrets
 import uuid
 import httpx
 import urllib.parse
+import redis.asyncio as aioredis
 from fastapi import APIRouter, HTTPException, Request, Depends
 from fastapi.responses import RedirectResponse
+from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from db.database import get_db
 from db.models import User
 from auth.jwt_handler import create_access_token, hash_password
 from config import settings
+
+logger = logging.getLogger(__name__)
+
+
+# --- Auth Code Exchange Schema (Master Contract 2a) ---
+class AuthCodeExchangeRequest(BaseModel):
+    code: str  # Single-use auth code from Redis
+
+
+async def _get_redis() -> aioredis.Redis | None:
+    """Get a Redis connection for auth code storage. Returns None if unavailable."""
+    try:
+        r = aioredis.from_url(settings.REDIS_URL, encoding="utf-8", decode_responses=True, socket_connect_timeout=2)
+        await r.ping()
+        return r
+    except Exception as exc:
+        logger.warning("Auth code exchange: Redis unavailable, falling back to direct token. %s", exc)
+        return None
 
 router = APIRouter(prefix="/auth", tags=["auth-google"])
 
@@ -166,14 +190,77 @@ async def google_callback(
     await db.commit()
     await db.refresh(user)
 
-    # Issue our JWT (same structure as email/password login)
-    jwt = create_access_token(user.id, user.email)
+    # Issue our JWT
+    jwt_token = create_access_token(user.id, user.email)
 
-    # Redirect to frontend /auth/callback — frontend reads params + stores in auth store
+    # RxHarden T1: Generate single-use auth code instead of putting JWT in URL
+    r = await _get_redis()
+    if r:
+        try:
+            auth_code = secrets.token_urlsafe(32)
+            code_payload = json.dumps({
+                "token": jwt_token,
+                "user_id": user.id,
+                "email": user.email,
+                "display_name": display_name,
+            })
+            await r.set(f"oauth:code:{auth_code}", code_payload, ex=60)  # 60s TTL
+            await r.aclose()
+            # Redirect with auth code only — no JWT in URL
+            redirect_params = urllib.parse.urlencode({"code": auth_code})
+            response = RedirectResponse(f"{frontend_url}/auth/callback?{redirect_params}")
+            response.delete_cookie("oauth_state")
+            return response
+        except Exception as exc:
+            logger.warning("Auth code exchange: Redis write failed, falling back to direct token. %s", exc)
+            await r.aclose()
+
+    # Degraded fallback: JWT in URL (legacy behavior when Redis is down)
+    logger.warning("Auth code exchange: Using degraded JWT-in-URL fallback")
     params = urllib.parse.urlencode({
-        "token":        jwt,
+        "token":        jwt_token,
         "user_id":      user.id,
         "email":        user.email,
         "display_name": display_name,
     })
     return RedirectResponse(f"{frontend_url}/auth/callback?{params}")
+
+
+@router.post("/google/exchange")
+async def google_exchange(req: AuthCodeExchangeRequest):
+    """
+    RxHarden T1: Exchange a single-use auth code for user session data.
+    The auth code was generated during the OAuth callback and stored in Redis with 60s TTL.
+    This endpoint consumes the code (single-use) and returns user info.
+    The JWT is currently returned in the body; Task 3 will migrate this to an httpOnly cookie.
+    """
+    r = await _get_redis()
+    if not r:
+        raise HTTPException(status_code=503, detail="Auth service temporarily unavailable — Redis unreachable.")
+
+    try:
+        key = f"oauth:code:{req.code}"
+        # Atomic GET + DEL to ensure single-use
+        pipe = r.pipeline()
+        pipe.get(key)
+        pipe.delete(key)
+        results = await pipe.execute()
+        await r.aclose()
+
+        payload_str = results[0]
+        if not payload_str:
+            raise HTTPException(status_code=400, detail="Invalid or expired auth code.")
+
+        payload = json.loads(payload_str)
+        return {
+            "access_token": payload["token"],
+            "token_type": "bearer",
+            "user_id": payload["user_id"],
+            "email": payload["email"],
+            "display_name": payload["display_name"],
+        }
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.error("Auth code exchange failed: %s", exc)
+        raise HTTPException(status_code=500, detail="Auth code exchange failed.")
